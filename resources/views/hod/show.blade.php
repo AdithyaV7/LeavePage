@@ -1,0 +1,241 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0 fw-bold">Application Review (HOD)</h2>
+            <p class="text-muted mb-0">Reference: {{ $application->reference_no }}</p>
+        </div>
+        <a href="{{ route('hod.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+    </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Application Status -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark fw-semibold">
+            <i class="fas fa-clock me-2"></i>Application Status
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Status:</strong> 
+                    <span class="badge bg-warning">{{ $application->status }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Applied Date:</strong> 
+                    {{ \Carbon\Carbon::parse($application->applied_date)->format('F d, Y \a\t h:i A') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Details -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white fw-semibold">
+            <i class="fas fa-user me-2"></i>Personal Details
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Name with Initials</label>
+                    <input type="text" class="form-control" value="{{ $application->name_with_initials }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Names Denoted by Initials</label>
+                    <input type="text" class="form-control" value="{{ $application->names_denoted_by_initials }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Department</label>
+                    <input type="text" class="form-control" value="{{ $application->department }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Faculty</label>
+                    <input type="text" class="form-control" value="{{ $application->faculty }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Designation</label>
+                    <input type="text" class="form-control" value="{{ $application->designation }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Mobile</label>
+                    <input type="text" class="form-control" value="{{ $application->mobile }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">NIC</label>
+                    <input type="text" class="form-control" value="{{ $application->nic }}" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Details -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white fw-semibold">
+            <i class="fas fa-calendar me-2"></i>Leave Details
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Leave Type</label>
+                    <input type="text" class="form-control" value="{{ $application->leave_type_name }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Start Date</label>
+                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($application->from_date)->format('F d, Y') }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">End Date</label>
+                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($application->to_date)->format('F d, Y') }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Duration (Days)</label>
+                    <input type="text" class="form-control" value="{{ $application->duration }} days" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white fw-semibold">
+            <i class="fas fa-file me-2"></i>Documents
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Leave Request Document</label>
+                    @if($application->leave_document)
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                            <a href="{{ Storage::url($application->leave_document) }}" 
+                               target="_blank" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                    @else
+                        <span class="text-muted">No document uploaded</span>
+                    @endif
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Consent Letter</label>
+                    @if($application->consent_letter)
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                            <a href="{{ Storage::url($application->consent_letter) }}" 
+                               target="_blank" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                    @else
+                        <span class="text-muted">No document uploaded</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOD Review Section -->
+    <div class="card">
+        <div class="card-header bg-dark text-white fw-semibold">
+            <i class="fas fa-tasks me-2"></i>HOD Review Actions
+        </div>
+        <div class="card-body">
+            <form id="approveForm" action="{{ route('hod.approve', $application->id) }}" method="POST" class="mb-3">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Whether adequate staff available for the continuation of academic programs during the period of applicant's leave</label><br>
+                    <input type="radio" name="hod_adequate_staff" value="1" required> Yes
+                    <input type="radio" name="hod_adequate_staff" value="0"> No
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Whether satisfactory agreements can be made to cover applicant's teaching activities and other commitments</label><br>
+                    <input type="radio" name="hod_teaching_covered" value="1" required> Yes
+                    <input type="radio" name="hod_teaching_covered" value="0"> No
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Whether the applicant has completed all requirements regarding examinations-related work</label><br>
+                    <input type="radio" name="hod_exam_work_completed" value="1" required> Yes
+                    <input type="radio" name="hod_exam_work_completed" value="0"> No
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Leave recommend or Leave not recommend</label><br>
+                    <input type="radio" name="hod_recommend" value="1" required id="recommend_yes"> Recommend
+                    <input type="radio" name="hod_recommend" value="0" id="recommend_no"> Not Recommend
+                </div>
+                <div class="mb-3" id="not-recommend-reason-div" style="display:none;">
+                    <label class="form-label fw-semibold">If not recommended, please give reasons <span class="text-danger">*</span></label>
+                    <textarea name="hod_not_recommend_reason" class="form-control" id="not-recommend-reason"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Any other remarks (optional)</label>
+                    <textarea name="hod_other_remarks" class="form-control"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Today's Date</label>
+                    <input type="text" class="form-control" value="{{ date('Y-m-d') }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Signature (Name with initials)</label>
+                    <input type="text" name="hod_signature" class="form-control" value="O. Wickramasinghe" required>
+                </div>
+                <button type="submit" class="btn btn-success" id="send-to-dean">Send to Dean</button>
+            </form>
+
+            <form id="returnForm" action="{{ route('hod.return', $application->id) }}" method="POST">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-danger">Return Remarks *</label>
+                    <textarea name="remark" class="form-control" required></textarea>
+                    <div class="form-text text-danger">Remarks are required when returning an application.</div>
+                </div>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-undo me-2"></i>Return to User
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide not recommend reason
+    document.addEventListener('DOMContentLoaded', function() {
+        const recommendNo = document.getElementById('recommend_no');
+        const recommendYes = document.getElementById('recommend_yes');
+        const reasonDiv = document.getElementById('not-recommend-reason-div');
+        const reasonInput = document.getElementById('not-recommend-reason');
+        const sendToDeanBtn = document.getElementById('send-to-dean');
+        function toggleReason() {
+            if (recommendNo.checked) {
+                reasonDiv.style.display = 'block';
+                reasonInput.required = true;
+                sendToDeanBtn.disabled = true;
+            } else {
+                reasonDiv.style.display = 'none';
+                reasonInput.required = false;
+                sendToDeanBtn.disabled = false;
+            }
+        }
+        recommendNo.addEventListener('change', toggleReason);
+        recommendYes.addEventListener('change', toggleReason);
+        toggleReason();
+    });
+</script>
+@endsection 
