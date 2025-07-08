@@ -4,28 +4,25 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-0 fw-bold">Application Review (HOD)</h2>
+            <h2 class="mb-0 fw-bold">Application Review (Dean)</h2>
             <p class="text-muted mb-0">Reference: {{ $application->reference_no }}</p>
         </div>
-        <a href="{{ route('hod.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('dean.index') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back to List
         </a>
     </div>
-
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-
     @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-
     <!-- Application Status -->
     <div class="card mb-4">
         <div class="card-header bg-warning text-dark fw-semibold">
@@ -39,12 +36,11 @@
                 </div>
                 <div class="col-md-6">
                     <strong>Applied Date:</strong> 
-                    {{ \Carbon\Carbon::parse($application->applied_date)->format('F d, Y \a\t h:i A') }}
+                    {{ \Carbon\Carbon::parse($application->applied_date)->format('F d, Y') }}
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Personal Details -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white fw-semibold">
@@ -87,7 +83,6 @@
             </div>
         </div>
     </div>
-
     <!-- Leave Details -->
     <div class="card mb-4">
         <div class="card-header bg-info text-white fw-semibold">
@@ -114,7 +109,6 @@
             </div>
         </div>
     </div>
-
     <!-- Documents -->
     <div class="card mb-4">
         <div class="card-header bg-success text-white fw-semibold">
@@ -161,80 +155,105 @@
             </div>
         </div>
     </div>
-
-    <!-- HOD Review Section -->
-    <div class="card">
+    <!-- HOD Remarks Section -->
+    <div class="card mb-4">
         <div class="card-header bg-dark text-white fw-semibold">
-            <i class="fas fa-tasks me-2"></i>HOD Review Actions
+            <i class="fas fa-comments me-2"></i>HOD Remarks
         </div>
         <div class="card-body">
-            <form id="approveForm" action="{{ route('hod.approve', $application->id) }}" method="POST" class="mb-3">
+            <dl class="row mb-0">
+                <dt class="col-sm-7">Whether adequate staff available for the continuation of academic programs during the period of applicant's leave:</dt>
+                <dd class="col-sm-5">
+                    <span class="badge {{ $application->hod_adequate_staff === 1 ? 'bg-success' : ($application->hod_adequate_staff === 0 ? 'bg-danger' : 'bg-secondary') }}">
+                        {{ $application->hod_adequate_staff === 1 ? 'Yes' : ($application->hod_adequate_staff === 0 ? 'No' : 'N/A') }}
+                    </span>
+                </dd>
+                <dt class="col-sm-7">Whether satisfactory agreements can be made to cover applicant's teaching activities and other commitments:</dt>
+                <dd class="col-sm-5">
+                    <span class="badge {{ $application->hod_teaching_covered === 1 ? 'bg-success' : ($application->hod_teaching_covered === 0 ? 'bg-danger' : 'bg-secondary') }}">
+                        {{ $application->hod_teaching_covered === 1 ? 'Yes' : ($application->hod_teaching_covered === 0 ? 'No' : 'N/A') }}
+                    </span>
+                </dd>
+                <dt class="col-sm-7">Whether the applicant has completed all requirements regarding examinations-related work:</dt>
+                <dd class="col-sm-5">
+                    <span class="badge {{ $application->hod_exam_work_completed === 1 ? 'bg-success' : ($application->hod_exam_work_completed === 0 ? 'bg-danger' : 'bg-secondary') }}">
+                        {{ $application->hod_exam_work_completed === 1 ? 'Yes' : ($application->hod_exam_work_completed === 0 ? 'No' : 'N/A') }}
+                    </span>
+                </dd>
+                <dt class="col-sm-7">Recommendation:</dt>
+                <dd class="col-sm-5">
+                    <span class="badge {{ $application->hod_recommend === 1 ? 'bg-success' : ($application->hod_recommend === 0 ? 'bg-danger' : 'bg-secondary') }}">
+                        {{ $application->hod_recommend === 1 ? 'Recommended' : ($application->hod_recommend === 0 ? 'Not Recommended' : 'N/A') }}
+                    </span>
+                </dd>
+                @if($application->hod_recommend === 0)
+                    <dt class="col-sm-7">Reason (if not recommended):</dt>
+                    <dd class="col-sm-5">{{ $application->hod_not_recommend_reason }}</dd>
+                @endif
+                <dt class="col-sm-7">Other Remarks:</dt>
+                <dd class="col-sm-5">{{ $application->hod_other_remarks }}</dd>
+                <dt class="col-sm-7">Reviewed By:</dt>
+                <dd class="col-sm-5">{{ $application->hod_reviewed_by }}</dd>
+                <dt class="col-sm-7">Reviewed At:</dt>
+                <dd class="col-sm-5">{{ $application->hod_reviewed_at }}</dd>
+            </dl>
+        </div>
+    </div>
+    <!-- Dean Recommendation Form -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white fw-semibold">
+            <i class="fas fa-tasks me-2"></i>Dean Recommendation
+        </div>
+        <div class="card-body">
+            <form id="recommendForm" action="{{ route('dean.recommend', $application->id) }}" method="POST">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether adequate staff available for the continuation of academic programs during the period of applicant's leave</label><br>
-                    <input type="radio" name="hod_adequate_staff" value="1" required> Yes
-                    <input type="radio" name="hod_adequate_staff" value="0"> No
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether satisfactory agreements can be made to cover applicant's teaching activities and other commitments</label><br>
-                    <input type="radio" name="hod_teaching_covered" value="1" required> Yes
-                    <input type="radio" name="hod_teaching_covered" value="0"> No
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether the applicant has completed all requirements regarding examinations-related work</label><br>
-                    <input type="radio" name="hod_exam_work_completed" value="1" required> Yes
-                    <input type="radio" name="hod_exam_work_completed" value="0"> No
-                </div>
-                <div class="mb-3">
                     <label class="form-label fw-semibold">Leave recommend or Leave not recommend</label><br>
-                    <input type="radio" name="hod_recommend" value="1" required id="recommend_yes"> Recommend
-                    <input type="radio" name="hod_recommend" value="0" id="recommend_no"> Not Recommend
+                    <input type="radio" name="dean_recommend" value="1" required id="recommend_yes"> Recommend
+                    <input type="radio" name="dean_recommend" value="0" id="recommend_no"> Not Recommend
                 </div>
                 <div class="mb-3" id="not-recommend-reason-div" style="display:none;">
-                    <label class="form-label fw-semibold">If not recommended, please give reasons <span class="text-danger">*</span></label>
-                    <textarea name="hod_not_recommend_reason" class="form-control" id="not-recommend-reason"></textarea>
+                    <label class="form-label fw-semibold">If not recommending, please give reasons <span class="text-danger">*</span></label>
+                    <textarea name="dean_remarks" class="form-control" id="not-recommend-reason"></textarea>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Any other remarks (optional)</label>
-                    <textarea name="hod_other_remarks" class="form-control"></textarea>
+                <div class="mb-3" id="recommend-remarks-div" style="display:none;">
+                    <label class="form-label fw-semibold">Remarks (optional if recommending)</label>
+                    <textarea name="dean_remarks" class="form-control"></textarea>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Today's Date</label>
-                    <input type="text" class="form-control" value="{{ date('Y-m-d') }}" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Signature (Name with initials)</label>
-                    <input type="text" name="hod_signature" class="form-control" value="O. Wickramasinghe" required>
-                </div>
-                <button type="submit" class="btn btn-success" id="send-to-dean">Forward</button>
+                <button type="submit" class="btn btn-success">Forward</button>
             </form>
         </div>
     </div>
+    <!-- Signature Block -->
+    <div class="mt-5 text-start">
+        <div class="fw-bold">Dr. S. Perera</div>
+        <div>Dean FAS</div>
+        <div>Applied Science</div>
+        <div>University of Sri Jayewardenepura</div>
+    </div>
 </div>
-
 <script>
-    // Show/hide not recommend reason
+    // Show/hide remarks fields based on recommendation
     document.addEventListener('DOMContentLoaded', function() {
-        const recommendNo = document.getElementById('recommend_no');
         const recommendYes = document.getElementById('recommend_yes');
-        const reasonDiv = document.getElementById('not-recommend-reason-div');
-        const reasonInput = document.getElementById('not-recommend-reason');
-        const sendToDeanBtn = document.getElementById('send-to-dean');
-        
-        function toggleReason() {
+        const recommendNo = document.getElementById('recommend_no');
+        const notRecommendDiv = document.getElementById('not-recommend-reason-div');
+        const recommendRemarksDiv = document.getElementById('recommend-remarks-div');
+        function toggleRemarks() {
             if (recommendNo.checked) {
-                reasonDiv.style.display = 'block';
-                reasonInput.required = true;
-                // Don't disable the button - allow forwarding even if not recommended
+                notRecommendDiv.style.display = 'block';
+                recommendRemarksDiv.style.display = 'none';
+            } else if (recommendYes.checked) {
+                notRecommendDiv.style.display = 'none';
+                recommendRemarksDiv.style.display = 'block';
             } else {
-                reasonDiv.style.display = 'none';
-                reasonInput.required = false;
+                notRecommendDiv.style.display = 'none';
+                recommendRemarksDiv.style.display = 'none';
             }
         }
-        
-        recommendNo.addEventListener('change', toggleReason);
-        recommendYes.addEventListener('change', toggleReason);
-        toggleReason();
+        recommendYes.addEventListener('change', toggleRemarks);
+        recommendNo.addEventListener('change', toggleRemarks);
+        toggleRemarks();
     });
 </script>
 @endsection 

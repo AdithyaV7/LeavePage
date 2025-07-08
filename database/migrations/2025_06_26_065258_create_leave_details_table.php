@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->foreign('nic')->references('nic')->on('personal_details')->onDelete('cascade');
 
             $table->string('reference_no')->unique();
-            $table->unsignedBigInteger('leave_type_id');
+            $table->unsignedBigInteger('leave_type_id')->nullable();
             $table->foreign('leave_type_id')->references('id')->on('leave_types');
 
             $table->date('from_date')->nullable();

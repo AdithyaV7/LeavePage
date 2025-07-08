@@ -43,12 +43,14 @@ class HODController extends Controller
             ->where('leave_details.status_id', 5)
             ->select(
                 'leave_details.*',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'personal_details.names_denoted_by_initials',
                 'personal_details.department',
                 'personal_details.faculty',
                 'personal_details.designation',
                 'personal_details.mobile',
+                'personal_details.nic',
                 'leave_types.name as leave_type_name',
                 'statuses.status'
             )
@@ -57,6 +59,14 @@ class HODController extends Controller
         if (!$application) {
             return redirect()->route('hod.index')->with('error', 'Application not found.');
         }
+
+        // Decode JSON fields to arrays for multiple files
+        $application->leave_documents = $application->leave_document
+            ? json_decode($application->leave_document, true)
+            : [];
+        $application->consent_letters = $application->consent_letter
+            ? json_decode($application->consent_letter, true)
+            : [];
 
         return view('hod.show', compact('application'));
     }
@@ -97,6 +107,11 @@ class HODController extends Controller
                 'hod_reviewed_by' => 'O. Wickramasinghe',
                 'hod_reviewed_at' => now(),
                 'hod_signature' => $request->hod_signature,
+                // New HOD fields
+                'hod_name' => 'O. Wickramasinghe',
+                'hod_recommendation' => $request->hod_recommend,
+                'hod_forwarded_date' => now(),
+                'hod_designation' => 'Head of Department', // Can be made configurable in future
                 'status_id' => $status_id,
                 'updated_at' => now(),
             ]);

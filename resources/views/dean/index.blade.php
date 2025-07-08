@@ -3,8 +3,8 @@
 @section('content')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0 fw-bold">HOD Dashboard</h2>
-        <div class="text-muted">Applications Pending HOD Review</div>
+        <h2 class="mb-0 fw-bold">Dean Dashboard</h2>
+        <div class="text-muted">Applications Pending Dean Review</div>
     </div>
 
     @if(session('success'))
@@ -21,7 +21,7 @@
     @endif
 
     <div class="card">
-        <div class="card-header bg-dark text-white fw-semibold">
+        <div class="card-header bg-secondary text-white fw-semibold">
             <i class="fas fa-list me-2"></i>Submitted Applications
         </div>
         <div class="card-body p-0">
@@ -36,6 +36,7 @@
                                 <th>Faculty</th>
                                 <th>Leave Type</th>
                                 <th>Applied Date</th>
+                                <th>Status</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -61,8 +62,11 @@
                                             {{ \Carbon\Carbon::parse($app->applied_date)->format('h:i A') }}
                                         </small>
                                     </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ $app->status }}</span>
+                                    </td>
                                     <td class="text-center">
-                                        <a href="{{ route('hod.show', $app->id) }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ route('dean.show', $app->id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye me-1"></i>View
                                         </a>
                                     </td>

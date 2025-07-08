@@ -22,6 +22,25 @@ class LeaveDetail extends Model
         'reference_no',
         'form_status',
         'remark',
+        // HOD fields
+        'hod_adequate_staff',
+        'hod_teaching_covered',
+        'hod_exam_work_completed',
+        'hod_recommend',
+        'hod_not_recommend_reason',
+        'hod_other_remarks',
+        'hod_reviewed_by',
+        'hod_reviewed_at',
+        'hod_signature',
+        'hod_name',
+        'hod_recommendation',
+        'hod_forwarded_date',
+        'hod_designation',
+    ];
+
+    protected $casts = [
+        'leave_document' => 'array',
+        'consent_letter' => 'array',
     ];
 
     // Relationships

@@ -8,7 +8,7 @@
 
         <!-- New Application -->
         <div class="mb-4 text-center">
-            <a href="{{ route('leaves.create') }}" class="d-inline-block text-decoration-none">
+            <a href="{{ route('leaves.draft.create') }}" class="d-inline-block text-decoration-none">
                 <div class="new-app-icon d-flex align-items-center justify-content-center mx-auto mb-2">
                     <i class="bi bi-journal-plus"></i>
                 </div>

@@ -53,6 +53,10 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold">Employee No</label>
+                    <input type="text" class="form-control" value="{{ $application->empno }}" readonly>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">Name with Initials</label>
                     <input type="text" class="form-control" value="{{ $application->name_with_initials }}" readonly>
                 </div>
@@ -60,15 +64,15 @@
                     <label class="form-label fw-semibold">Names Denoted by Initials</label>
                     <input type="text" class="form-control" value="{{ $application->names_denoted_by_initials }}" readonly>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">Department</label>
                     <input type="text" class="form-control" value="{{ $application->department }}" readonly>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">Faculty</label>
                     <input type="text" class="form-control" value="{{ $application->faculty }}" readonly>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">Designation</label>
                     <input type="text" class="form-control" value="{{ $application->designation }}" readonly>
                 </div>
@@ -119,31 +123,37 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Leave Request Document</label>
-                    @if($application->leave_document)
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-file-pdf text-danger me-2"></i>
-                            <a href="{{ Storage::url($application->leave_document) }}" 
-                               target="_blank" 
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-download me-1"></i>Download
-                            </a>
-                        </div>
+                    <label class="form-label fw-semibold">Leave Request Documents</label>
+                    @if(!empty($application->leave_documents) && count($application->leave_documents))
+                        <ul class="list-unstyled">
+                            @foreach($application->leave_documents as $doc)
+                                <li class="mb-2 d-flex align-items-center">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </a>
+                                    <span class="text-muted">{{ basename($doc) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
                     @else
                         <span class="text-muted">No document uploaded</span>
                     @endif
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Consent Letter</label>
-                    @if($application->consent_letter)
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-file-pdf text-danger me-2"></i>
-                            <a href="{{ Storage::url($application->consent_letter) }}" 
-                               target="_blank" 
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-download me-1"></i>Download
-                            </a>
-                        </div>
+                    <label class="form-label fw-semibold">Consent Letters</label>
+                    @if(!empty($application->consent_letters) && count($application->consent_letters))
+                        <ul class="list-unstyled">
+                            @foreach($application->consent_letters as $letter)
+                                <li class="mb-2 d-flex align-items-center">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <a href="{{ asset('storage/' . ltrim($letter, '/')) }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </a>
+                                    <span class="text-muted">{{ basename($letter) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
                     @else
                         <span class="text-muted">No document uploaded</span>
                     @endif
@@ -166,7 +176,7 @@
                               placeholder="Add any comments or remarks (optional)"></textarea>
                 </div>
                 <button type="submit" class="btn btn-success me-2">
-                    <i class="fas fa-check me-2"></i>Forward to HOD
+                    <i class="fas fa-check me-2"></i>Forward
                 </button>
             </form>
 

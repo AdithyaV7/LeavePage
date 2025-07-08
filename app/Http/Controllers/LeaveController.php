@@ -86,7 +86,7 @@ class LeaveController extends Controller
         $remark = null;
         
         if ($request->has('id')) {
-            $leave = DB::table('leave_details')->where('id', $request->id)->where('nic', $user->nic)->first();
+            $leave = \App\Models\LeaveDetail::where('id', $request->id)->where('nic', $user->nic)->first();
             if (!$leave || !in_array($leave->form_status, [1, 3])) {
                 return redirect()->route('leaves.index')->with('error', 'You can only edit Drafts or Returned forms.');
             }
@@ -128,16 +128,17 @@ class LeaveController extends Controller
         ];
 
         if (!$isDraft) {
-            // Only require all fields if not a draft
             $rules = array_merge($rules, [
                 'leave_type' => 'required|exists:leave_types,id',
                 'from_date' => 'required|date',
                 'to_date' => 'required|date|after_or_equal:from_date',
                 'duration' => 'required|integer|min:1',
-                'leave_document' => 'required|file|mimes:pdf|max:2048',
-                'consent_letter' => 'required|file|mimes:pdf|max:2048',
                 'confirm' => 'required',
             ]);
+            if (!$isUpdate) {
+                $rules['leave_document'] = 'required';
+                $rules['consent_letter'] = 'required';
+            }
         }
 
         $validated = $request->validate($rules);
@@ -146,77 +147,202 @@ class LeaveController extends Controller
         if (!$user) return back()->with('error', 'User not found.');
 
         if ($isUpdate) {
-            // Update existing record
             $leave = \App\Models\LeaveDetail::where('id', $request->leave_id)
                 ->where('nic', $user->nic)
                 ->whereIn('form_status', [1, 3])
                 ->first();
-                
             if (!$leave) {
                 return back()->with('error', 'Record not found or cannot be updated.');
             }
-
-            // Handle file uploads - preserve existing files if no new ones uploaded
-            $leaveDocPath = $leave->leave_document;
-            $consentLetterPath = $leave->consent_letter;
-            
+            // For submit, ensure at least one file exists in DB for each field
+            $leaveDocPaths = is_array($leave->leave_document) ? $leave->leave_document : [];
+            $consentLetterPaths = is_array($leave->consent_letter) ? $leave->consent_letter : [];
+            // Handle new uploads
             if ($request->hasFile('leave_document')) {
-                // Delete old file if exists
-                if ($leave->leave_document) {
-                    Storage::delete($leave->leave_document);
+                foreach ($request->file('leave_document') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads', $filename, 'public');
+                    $leaveDocPaths[] = $path;
                 }
-                $leaveDocPath = $request->file('leave_document')->store('uploads', 'public');
             }
-            
             if ($request->hasFile('consent_letter')) {
-                // Delete old file if exists
-                if ($leave->consent_letter) {
-                    Storage::delete($leave->consent_letter);
+                foreach ($request->file('consent_letter') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads', $filename, 'public');
+                    $consentLetterPaths[] = $path;
                 }
-                $consentLetterPath = $request->file('consent_letter')->store('uploads', 'public');
             }
-
-            // Update the record
+            if (!$isDraft) {
+                if (count($leaveDocPaths) == 0) {
+                    return back()->with('error', 'At least one leave document is required.');
+                }
+                if (count($consentLetterPaths) == 0) {
+                    return back()->with('error', 'At least one consent letter is required.');
+                }
+            }
             $leave->update([
                 'leave_type_id' => $request->leave_type,
                 'from_date' => $request->from_date,
                 'to_date' => $request->to_date,
                 'duration' => $request->duration,
-                'leave_document' => $leaveDocPath,
-                'consent_letter' => $consentLetterPath,
-                'status_id' => $request->form_status == 1 ? 3 : 4, // 3 for Editing (drafts), 4 for Processing MA (submitted)
+                'leave_document' => $leaveDocPaths,
+                'consent_letter' => $consentLetterPaths,
+                'status_id' => $request->form_status == 1 ? 3 : 4,
                 'form_status' => $request->form_status,
-                'remark' => null, // Clear remark when resubmitting
+                'remark' => null,
             ]);
-
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         } else {
-            // Create new record
-            // Handle file uploads only if present
-            $leaveDocPath = $request->hasFile('leave_document') ? $request->file('leave_document')->store('uploads', 'public') : null;
-            $consentLetterPath = $request->hasFile('consent_letter') ? $request->file('consent_letter')->store('uploads', 'public') : null;
-
-            // Generate reference number with GMT+5:30 time (manually add 5 hours 30 minutes) including seconds
+            // Handle multiple file uploads for new applications
+            $leaveDocPaths = [];
+            if ($request->hasFile('leave_document')) {
+                foreach ($request->file('leave_document') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads', $filename, 'public');
+                    $leaveDocPaths[] = $path;
+                }
+            }
+            $consentLetterPaths = [];
+            if ($request->hasFile('consent_letter')) {
+                foreach ($request->file('consent_letter') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads', $filename, 'public');
+                    $consentLetterPaths[] = $path;
+                }
+            }
+            if (!$isDraft) {
+                if (count($leaveDocPaths) == 0) {
+                    return back()->with('error', 'At least one leave document is required.');
+                }
+                if (count($consentLetterPaths) == 0) {
+                    return back()->with('error', 'At least one consent letter is required.');
+                }
+            }
             $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
             $refNo = 'OL' . $timestamp . 'E' . $user->empno;
-
-            // Save record
             \App\Models\LeaveDetail::create([
                 'nic' => $user->nic,
                 'leave_type_id' => $request->leave_type,
                 'from_date' => $request->from_date,
                 'to_date' => $request->to_date,
                 'duration' => $request->duration,
-                'leave_document' => $leaveDocPath,
-                'consent_letter' => $consentLetterPath,
-                'status_id' => $request->form_status == 1 ? 3 : 4, // 3 for Editing (drafts), 4 for Processing MA (submitted)
+                'leave_document' => $leaveDocPaths,
+                'consent_letter' => $consentLetterPaths,
+                'status_id' => $request->form_status == 1 ? 3 : 4,
                 'form_status' => $request->form_status,
                 'reference_no' => $refNo,
                 'applied_date' => now()->addHours(5)->addMinutes(30),
             ]);
-
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         }
+    }
+
+    // AJAX: Upload file for leave_document or consent_letter
+    public function uploadFile(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:leave_document,consent_letter',
+            'file' => 'required|file|mimes:pdf|max:2048',
+            'leave_id' => 'required|integer|exists:leave_details,id',
+        ]);
+
+        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        if (!$user) return response()->json(['error' => 'User not found.'], 403);
+
+        $leave = \App\Models\LeaveDetail::where('id', $request->leave_id)
+            ->where('nic', $user->nic)
+            ->whereIn('form_status', [1, 3])
+            ->first();
+        if (!$leave) return response()->json(['error' => 'Record not found or cannot be updated.'], 404);
+
+        $type = $request->type;
+        $files = $leave->$type ?? [];
+        if (!is_array($files)) $files = [];
+
+        $file = $request->file('file');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $ext = $file->getClientOriginalExtension();
+        $date = now()->format('Ymd_His');
+        $filename = $originalName . '_' . $date . '.' . $ext;
+        $path = $file->storeAs('uploads', $filename, 'public');
+
+        // If file with same original name exists, replace it
+        $files = array_filter($files, function($f) use ($originalName) {
+            return strpos($f, $originalName . '_') !== 0;
+        });
+        $files[] = $path;
+        $leave->$type = array_values($files);
+        $leave->save();
+
+        return response()->json(['success' => true, 'files' => $leave->$type]);
+    }
+
+    // AJAX: Delete file for leave_document or consent_letter
+    public function deleteFile(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:leave_document,consent_letter',
+            'file' => 'required|string',
+            'leave_id' => 'required|integer|exists:leave_details,id',
+        ]);
+
+        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        if (!$user) return response()->json(['error' => 'User not found.'], 403);
+
+        $leave = \App\Models\LeaveDetail::where('id', $request->leave_id)
+            ->where('nic', $user->nic)
+            ->whereIn('form_status', [1, 3])
+            ->first();
+        if (!$leave) return response()->json(['error' => 'Record not found or cannot be updated.'], 404);
+
+        $type = $request->type;
+        $files = $leave->$type ?? [];
+        if (!is_array($files)) $files = [];
+
+        $files = array_filter($files, function($f) use ($request) {
+            return $f !== $request->file;
+        });
+        // Delete file from storage
+        \Storage::disk('public')->delete($request->file);
+        $leave->$type = array_values($files);
+        $leave->save();
+
+        return response()->json(['success' => true, 'files' => $leave->$type]);
+    }
+
+    /**
+     * Create a new draft leave application and redirect to the create form.
+     */
+    public function createDraft(Request $request)
+    {
+        $user = DB::table('personal_details')->where('empno', session('empno'))->first();
+        if (!$user) abort(404, 'User not found');
+
+        // Create a new draft leave record
+        $draft = DB::table('leave_details')->insertGetId([
+            'nic' => $user->nic,
+            'reference_no' => 'REF-' . strtoupper(uniqid()),
+            'form_status' => 1, // Draft
+            'status_id' => 3, // Editing or Draft status
+            'applied_date' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Redirect to the create form with the draft's ID
+        return redirect()->route('leaves.create', ['id' => $draft]);
     }
 
 }
