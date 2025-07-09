@@ -36,6 +36,17 @@ class LeaveDetail extends Model
         'hod_recommendation',
         'hod_forwarded_date',
         'hod_designation',
+        // VC fields
+        'vc_recommend_committee',
+        'vc_approved_council',
+        'vc_remarks',
+        'vc_signature',
+        'vc_name',
+        'vc_reviewed_at',
+        'vc_checked',
+        'dean_reviewed_at',
+        'dean_name',
+        'dean_designation',
     ];
 
     protected $casts = [

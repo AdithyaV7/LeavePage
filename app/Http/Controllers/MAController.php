@@ -134,7 +134,29 @@ class MAController extends Controller
 
     public function dashboard()
     {
-        return view('ma.dashboard');
+        // Get all applications that are being processed by MA
+        $applications = DB::table('leave_details')
+            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
+            ->whereIn('leave_details.form_status', [2, 3]) // Complete/Submitted
+            ->whereIn('leave_details.status_id', [1, 2, 4, 5, 6, 7,8])
+            //->where('leave_details.status_id', 4 ,'OR', 3, 'OR', 2) // Processing MA
+            ->orderByDesc('leave_details.applied_date')
+            ->select(
+                'leave_details.id',
+                'leave_details.reference_no',
+                'personal_details.name_with_initials',
+                'personal_details.department',
+                'personal_details.faculty',
+                'leave_details.applied_date',
+                'leave_types.name as leave_type',
+                'statuses.status',
+                'leave_details.remark'
+            )
+            ->get();
+
+        return view('ma.dashboardDemo', compact('applications'));
     }
 } 
 

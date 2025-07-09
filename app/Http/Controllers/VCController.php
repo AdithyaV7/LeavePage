@@ -4,18 +4,19 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
-class DeanController extends Controller
+class VCController extends Controller
 {
     public function index()
     {
-        // Get all applications for Dean review (status_id = 6)
+        // Get all applications for VC review (status_id = 7)
         $applications = DB::table('leave_details')
             ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
-            ->where('leave_details.status_id', 6) // Processing Dean
+            ->where('leave_details.status_id', 7) // Processing VC
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
@@ -29,7 +30,7 @@ class DeanController extends Controller
             )
             ->get();
 
-        return view('dean.index', compact('applications'));
+        return view('vc.index', compact('applications'));
     }
 
     public function show($id)
@@ -40,7 +41,7 @@ class DeanController extends Controller
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
             ->where('leave_details.form_status', 2)
-            ->where('leave_details.status_id', 6)
+            ->where('leave_details.status_id', 7)
             ->select(
                 'leave_details.*',
                 'personal_details.empno',
@@ -57,7 +58,7 @@ class DeanController extends Controller
             ->first();
 
         if (!$application) {
-            return redirect()->route('dean.index')->with('error', 'Application not found.');
+            return redirect()->route('vc.index')->with('error', 'Application not found.');
         }
 
         // Decode JSON fields to arrays for multiple files
@@ -68,40 +69,47 @@ class DeanController extends Controller
             ? json_decode($application->consent_letter, true)
             : [];
 
-        return view('dean.show', compact('application'));
+        return view('vc.show', compact('application'));
     }
 
     public function recommend(Request $request, $id)
     {
         $request->validate([
-            'dean_recommend' => 'required|boolean',
-            'dean_remarks' => 'required_if:dean_recommend,0',
+            'vc_recommend_committee' => 'nullable|boolean',
+            'vc_approved_council' => 'nullable|boolean',
+            'vc_remarks' => 'nullable|string',
         ]);
+
+        // At least one of the two must be set (yes/no)
+        if (!isset($request->vc_recommend_committee) && !isset($request->vc_approved_council)) {
+            return back()->with('error', 'Please select Yes or No for at least one of the options.');
+        }
 
         $application = DB::table('leave_details')
             ->where('id', $id)
             ->where('form_status', 2)
-            ->where('status_id', 6)
+            ->where('status_id', 7)
             ->first();
 
         if (!$application) {
-            return redirect()->route('dean.index')->with('error', 'Application not found.');
+            return redirect()->route('vc.index')->with('error', 'Application not found.');
         }
 
-        // Always forward to VC (status_id = 7)
+        // Forward to MA dashboard (status_id = 8, for example)
         DB::table('leave_details')
             ->where('id', $id)
             ->update([
-                'dean_recommend' => $request->dean_recommend,
-                'dean_remarks' => $request->dean_remarks,
-                'dean_reviewed_by' => 'Dr. S. Perera', // Or get from auth if available
-                'dean_reviewed_at' => now(),
-                'dean_name' => 'Dr. S. Perera',
-                'dean_designation' => 'Dean FAS',
-                'status_id' => 7, // Processing VC
-                'updated_at' => now(),
+                'vc_recommend_committee' => $request->vc_recommend_committee,
+                'vc_approved_council' => $request->vc_approved_council,
+                'vc_remarks' => $request->vc_remarks,
+                'vc_signature' => 'Dr. A. Silva', // Example signature
+                'vc_name' => 'Dr. A. Silva',
+                'vc_reviewed_at' => Carbon::now(),
+                'vc_checked' => true,
+                'status_id' => 8, // Forwarded to MA dashboard (implement as needed)
+                'updated_at' => Carbon::now(),
             ]);
 
-        return redirect()->route('dean.index')->with('success', 'Application forwarded to VC.');
+        return redirect()->route('vc.index')->with('success', 'Application forwarded.');
     }
 } 

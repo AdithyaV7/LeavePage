@@ -7,6 +7,7 @@ use App\Http\Controllers\MAController;
 use App\Http\Controllers\HODController;
 use App\Http\Controllers\DeanController;
 use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
+use App\Http\Controllers\VCController;
 
 // Login routes
 Route::get('/', [LoginController::class, 'showLogin'])->name('login');
@@ -29,6 +30,11 @@ Route::post('/HODpage/{id}/return', [HODController::class, 'return'])->name('hod
 Route::get('/Deanpage', [DeanController::class, 'index'])->name('dean.index');
 Route::get('/Deanpage/{id}', [DeanController::class, 'show'])->name('dean.show');
 Route::post('/Deanpage/{id}/recommend', [DeanController::class, 'recommend'])->name('dean.recommend');
+
+// VC routes (no authentication required)
+Route::get('/VCpage', [VCController::class, 'index'])->name('vc.index');
+Route::get('/VCpage/{id}', [VCController::class, 'show'])->name('vc.show');
+Route::post('/VCpage/{id}/recommend', [VCController::class, 'recommend'])->name('vc.recommend');
 
 // Protected routes (user must be logged in)
 Route::middleware('checklogin')->group(function () {

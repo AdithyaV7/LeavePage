@@ -19,7 +19,7 @@
         <div>
             <h2 class="mb-0 fw-bold">
                 @if(isset($leave))
-                    Edit Application for Conference/ Seminar/ Training and Workshop
+                    Application for Conference/ Seminar/ Training and Workshop
                 @else
                     Application for Conference/ Seminar/ Training and Workshop
                 @endif
