@@ -199,31 +199,36 @@
             </dl>
         </div>
     </div>
-    <!-- Dean Recommendation Form -->
-    <div class="card mb-4">
-        <div class="card-header bg-secondary text-white fw-semibold">
-            <i class="fas fa-tasks me-2"></i>Dean Recommendation
+    <!-- Dean Review Section -->
+    @if(empty($readonly) || !$readonly)
+    <div class="card">
+        <div class="card-header bg-dark text-white fw-semibold">
+            <i class="fas fa-tasks me-2"></i>Dean Review Actions
         </div>
         <div class="card-body">
-            <form id="recommendForm" action="{{ route('dean.recommend', $application->id) }}" method="POST">
+            <form id="recommendForm" action="{{ route('dean.recommend', $application->id) }}" method="POST" class="mb-3">
                 @csrf
+                <!-- Add your Dean review fields here -->
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Leave recommend or Leave not recommend</label><br>
-                    <input type="radio" name="dean_recommend" value="1" required id="recommend_yes"> Recommend
-                    <input type="radio" name="dean_recommend" value="0" id="recommend_no"> Not Recommend
+                    <label class="form-label fw-semibold">Dean's Recommendation</label><br>
+                    <input type="radio" name="dean_recommend" value="1" required> Recommend
+                    <input type="radio" name="dean_recommend" value="0"> Not Recommend
                 </div>
-                <div class="mb-3" id="not-recommend-reason-div" style="display:none;">
-                    <label class="form-label fw-semibold">If not recommending, please give reasons <span class="text-danger">*</span></label>
-                    <textarea name="dean_remarks" class="form-control" id="not-recommend-reason"></textarea>
-                </div>
-                <div class="mb-3" id="recommend-remarks-div" style="display:none;">
-                    <label class="form-label fw-semibold">Remarks (optional if recommending)</label>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Remarks (optional)</label>
                     <textarea name="dean_remarks" class="form-control"></textarea>
                 </div>
-                <button type="submit" class="btn btn-success">Forward</button>
+                <button type="submit" class="btn btn-success me-2">
+                    <i class="fas fa-check me-2"></i>Forward
+                </button>
             </form>
         </div>
     </div>
+    @else
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-eye"></i> This application is in a different workflow stage. You have read-only access.
+    </div>
+    @endif
     <!-- Signature Block -->
     <div class="mt-5 text-start">
         <div class="fw-bold">Dr. S. Perera</div>

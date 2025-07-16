@@ -10,6 +10,10 @@
         <li class="nav-item d-none d-sm-inline-block">
             <a href="{{ route('ma.dashboard') }}" class="nav-link">Dashboard</a>
         </li>
+
+        <li class="nav-item d-none d-sm-inline-block">
+            <a href="{{ route('ma.dashboard.vcapproved') }}" class="nav-link">VC Checked --</a>
+        </li>
     </ul>
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">

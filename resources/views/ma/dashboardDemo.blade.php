@@ -29,25 +29,10 @@
             </a>
 
             <!-- Sidebar -->
-            <div class="sidebar">
-                <!-- Sidebar Menu -->
-                <nav class="mt-2">
-                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-                        <li class="nav-item">
-                            <a href="{{ route('ma.dashboard') }}" class="nav-link active">
-                                <i class="nav-icon fas fa-tachometer-alt"></i>
-                                <p>Dashboard</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('ma.index') }}" class="nav-link">
-                                <i class="nav-icon fas fa-list"></i>
-                                <p>Applications</p>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
+            @php 
+                 $pageName = 'Dashboard';
+            @endphp
+            @include('ma.partials.sidebar')	
         </aside>
 
         <!-- Content Wrapper -->
@@ -121,7 +106,6 @@
                                                         <th>Leave Type</th>
                                                         <th>Applied Date</th>
                                                         <th>Status</th>
-                                                        <th>Remarks</th>
                                                         <th>Actions</th>
                                                     </tr>
                                                 </thead>
@@ -147,18 +131,18 @@
                                                                 </small>
                                                             </td>
                                                             <td>
-                                                                <span class="badge badge-warning">{{ $application->status }}</span>
-                                                            </td>
-                                                            <td>
-                                                                @if($application->remark)
-                                                                    <span class="text-success">
-                                                                        <i class="fas fa-check-circle"></i> Reviewed
-                                                                    </span>
-                                                                @else
-                                                                    <span class="text-warning">
-                                                                        <i class="fas fa-clock"></i> Pending
-                                                                    </span>
-                                                                @endif
+                                                                @php
+                                                                    $status = $application->status;
+                                                                    $badgeClass = 'badge-primary'; // default blue
+                                                                    if (strtolower($status) === 'processing ma') {
+                                                                        $badgeClass = 'badge-warning'; // yellow
+                                                                    } elseif (strtolower($status) === 'vc checked') {
+                                                                        $badgeClass = 'badge-success'; // green
+                                                                    } elseif (strtolower($status) === 'returned') {
+                                                                        $badgeClass = 'badge-danger'; // red
+                                                                    }
+                                                                @endphp
+                                                                <span class="badge {{ $badgeClass }}">{{ $status }}</span>
                                                             </td>
                                                             <td>
                                                                 <a href="{{ route('ma.show', $application->id) }}" 

@@ -163,6 +163,7 @@
     </div>
 
     <!-- HOD Review Section -->
+    @if(empty($readonly) || !$readonly)
     <div class="card">
         <div class="card-header bg-dark text-white fw-semibold">
             <i class="fas fa-tasks me-2"></i>HOD Review Actions
@@ -206,10 +207,17 @@
                     <label class="form-label fw-semibold">Signature (Name with initials)</label>
                     <input type="text" name="hod_signature" class="form-control" value="O. Wickramasinghe" required>
                 </div>
-                <button type="submit" class="btn btn-success" id="send-to-dean">Forward</button>
+                <button type="submit" class="btn btn-success me-2">
+                    <i class="fas fa-check me-2"></i>Forward
+                </button>
             </form>
         </div>
     </div>
+    @else
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-eye"></i> This application is in a different workflow stage. You have read-only access.
+    </div>
+    @endif
 </div>
 
 <script>

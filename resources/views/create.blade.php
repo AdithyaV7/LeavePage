@@ -13,7 +13,10 @@
 
     <!-- Show remark if returned -->
     @isset($remark)
-        <div class="alert alert-warning fw-semibold">Returned with remark: {{ $remark }}</div>
+    <div class="alert alert-warning fw-semibold">
+        Returned with remark:
+        <pre class="mb-0">{{ $remark }}</pre>
+    </div>
     @endisset
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>

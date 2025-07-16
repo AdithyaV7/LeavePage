@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MA Dashboard - Leave Management</title>
+    <title>MA Dashboard - VC Checked</title>
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome -->
@@ -18,15 +18,15 @@
         <!-- Navbar -->
         @include('ma.partials.navbar')
 
-        <!-- Main Sidebar Container -->
+        <!-- Main Sidebar Container --> 
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="{{ route('ma.dashboard') }}" class="brand-link">
                 <span class="brand-text font-weight-light">MA Dashboard</span>
             </a>
             <!-- Sidebar -->
-            @php($pageName = 'Applications')
-            @include('ma.partials.sidebar')	
+            @php($pageName = 'VCChecked')
+            @include('ma.partials.sidebar')
         </aside>
 
         <!-- Content Wrapper -->
@@ -37,7 +37,7 @@
             <!-- Main content -->
             <section class="content">
                 <div class="container-fluid">
-                    @include('ma.partials.index-body')
+                    @include('ma.partials.vcapproved-body')
                 </div>
             </section>
         </div>

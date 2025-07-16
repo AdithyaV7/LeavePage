@@ -41,8 +41,6 @@ class MAController extends Controller
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
-            ->where('leave_details.form_status', 2) // Complete/Submitted
-            ->where('leave_details.status_id', 4) // Processing MA
             ->select(
                 'leave_details.*',
                 'personal_details.empno',
@@ -70,7 +68,33 @@ class MAController extends Controller
             ? json_decode($application->consent_letter, true)
             : [];
 
-        return view('ma.show', compact('application'));
+        // Decide which blade to use and readonly status
+        $readonly = false;
+        $view = 'ma.show';
+        switch ($application->status_id) {
+            case 4: // Processing MA
+                $view = 'ma.show';
+                $readonly = false;
+                break;
+            case 5: // Processing HOD
+                $view = 'hod.show';
+                $readonly = true;
+                break;
+            case 6: // Processing Dean
+                $view = 'dean.show';
+                $readonly = true;
+                break;
+            case 7: // Processing VC
+            case 8: // VC Approved
+                $view = 'vc.show';
+                $readonly = true;
+                break;
+            default:
+                $view = 'ma.show';
+                $readonly = true;
+        }
+
+        return view($view, compact('application', 'readonly'));
     }
 
     public function approve(Request $request, $id)
@@ -89,12 +113,19 @@ class MAController extends Controller
             return redirect()->route('ma.index')->with('error', 'Application not found.');
         }
 
+        // Prepare new remark by appending to existing remarks
+        $newRemark = '';
+        if ($request->remark) {
+            $timestamp = now()->format('Y-m-d');
+            $newRemark = "\n\n[MA Review - " . $timestamp . "]\n" . $request->remark;
+        }
+
         // Update status to Processing HOD (status_id = 5)
         DB::table('leave_details')
             ->where('id', $id)
             ->update([
                 'status_id' => 5, // Processing HOD
-                'remark' => $request->remark,
+                'remark' => DB::raw("CONCAT(COALESCE(remark, ''), '" . addslashes($newRemark) . "')"),
                 'updated_at' => now()
             ]);
 
@@ -119,13 +150,17 @@ class MAController extends Controller
             return redirect()->route('ma.index')->with('error', 'Application not found.');
         }
 
+        // Prepare new remark by appending to existing remarks
+        $timestamp = now()->format('Y-m-d');
+        $newRemark = "\n\n[MA Return - " . $timestamp . "]\n" . $request->remark;
+
         // Update status to Returned (form_status = 3, status_id = 2 for Rejected)
         DB::table('leave_details')
             ->where('id', $id)
             ->update([
                 'form_status' => 3, // Returned
                 'status_id' => 2, // Rejected
-                'remark' => $request->remark,
+                'remark' => DB::raw("CONCAT(COALESCE(remark, ' '), '" . addslashes($newRemark) . "')"),
                 'updated_at' => now()
             ]);
 
@@ -141,7 +176,48 @@ class MAController extends Controller
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->whereIn('leave_details.form_status', [2, 3]) // Complete/Submitted
             ->whereIn('leave_details.status_id', [1, 2, 4, 5, 6, 7,8])
-            //->where('leave_details.status_id', 4 ,'OR', 3, 'OR', 2) // Processing MA
+            ->orderByDesc('leave_details.applied_date')
+            ->select(
+                'leave_details.id',
+                'leave_details.reference_no',
+                'personal_details.name_with_initials',
+                'personal_details.department',
+                'personal_details.faculty',
+                'leave_details.applied_date',
+                'leave_types.name as leave_type',
+                'statuses.status',
+                'leave_details.status_id',
+                'leave_details.remark'
+            )
+            ->get();
+
+        // Applications for status sidebar (status_id 4-8)
+        $statusApplications = DB::table('leave_details')
+            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->whereBetween('leave_details.status_id', [4, 8])
+            ->orderByDesc('leave_details.applied_date')
+            ->select(
+                'leave_details.id',
+                'leave_details.reference_no',
+                'personal_details.name_with_initials',
+                'leave_types.name as leave_type',
+                'leave_details.status_id'
+            )
+            ->get();
+
+        return view('ma.dashboardDemo', compact('applications', 'statusApplications'));
+    }
+
+    public function dashboardVcApproved()
+    {
+        // Get all applications with status_id = 8 (VC Approved)
+        $applications = DB::table('leave_details')
+            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
+            ->where('leave_details.form_status', 2) // Complete/Submitted
+            ->where('leave_details.status_id', 8) // VC Approved
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
@@ -156,7 +232,25 @@ class MAController extends Controller
             )
             ->get();
 
-        return view('ma.dashboardDemo', compact('applications'));
+        return view('ma.vcapproved', compact('applications'));
+    }
+
+    public function statusPage()
+    {
+        $statusApplications = DB::table('leave_details')
+            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->whereBetween('leave_details.status_id', [4, 8])
+            ->orderByDesc('leave_details.applied_date')
+            ->select(
+                'leave_details.id',
+                'leave_details.reference_no',
+                'personal_details.name_with_initials',
+                'leave_types.name as leave_type',
+                'leave_details.status_id'
+            )
+            ->get();
+        return view('ma.status', compact('statusApplications'));
     }
 } 
 

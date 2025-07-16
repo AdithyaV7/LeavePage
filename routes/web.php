@@ -52,3 +52,5 @@ Route::middleware('checklogin')->group(function () {
 });
 
 Route::get('/dashboard', [MAController::class, 'dashboard'])->name('ma.dashboard');
+Route::get('/dashboard/vc-approved', [MAController::class, 'dashboardVcApproved'])->name('ma.dashboard.vcapproved');
+Route::get('/dashboard/status', [MAController::class, 'statusPage'])->name('ma.status');

@@ -195,7 +195,7 @@ class LeaveController extends Controller
                 'consent_letter' => $consentLetterPaths,
                 'status_id' => $request->form_status == 1 ? 3 : 4,
                 'form_status' => $request->form_status,
-                'remark' => null,
+                // Preserve existing remarks instead of setting to null
             ]);
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         } else {

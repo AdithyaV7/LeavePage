@@ -162,7 +162,22 @@
         </div>
     </div>
 
+    <!-- Previous Remarks -->
+    @if($application->remark)
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white fw-semibold">
+            <i class="fas fa-comments me-2"></i>Previous Remarks
+        </div>
+        <div class="card-body">
+            <div class="remarks-container">
+                {!! nl2br(e($application->remark)) !!}
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Action Section -->
+    @if(empty($readonly) || !$readonly)
     <div class="card">
         <div class="card-header bg-dark text-white fw-semibold">
             <i class="fas fa-tasks me-2"></i>Review Actions
@@ -194,6 +209,11 @@
             </form>
         </div>
     </div>
+    @else
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-eye"></i> This application is in a different workflow stage. You have read-only access.
+    </div>
+    @endif
 </div>
 
 <script>
@@ -241,6 +261,37 @@ document.querySelector('#returnForm button[type="submit"]').addEventListener('cl
 
 .badge {
     font-size: 0.875rem;
+}
+
+.remarks-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.remarks-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.remarks-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.remarks-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.remarks-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 </style>
 @endsection 

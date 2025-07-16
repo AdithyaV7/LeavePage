@@ -221,7 +221,8 @@
             </dl>
         </div>
     </div>
-    <!-- VC Recommendation Form -->
+    <!-- VC Review Section -->
+    @if(empty($readonly) || !$readonly)
     <div class="card mb-4">
         <div class="card-header bg-info text-white fw-semibold">
             <i class="fas fa-tasks me-2"></i>VC Recommendation
@@ -248,6 +249,11 @@
             </form>
         </div>
     </div>
+    @else
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-eye"></i> This application is in a different workflow stage. You have read-only access.
+    </div>
+    @endif
     <!-- Signature Block -->
     <div class="mt-5 text-start">
         <div class="fw-bold">Dr. A. Silva</div>
@@ -257,7 +263,7 @@
 </div>
 <script>
     // At least one of the two radio groups must be selected (yes or no)
-    document.getElementById('vcRecommendForm').addEventListener('submit', function(e) {
+    document.getElementById('recommendForm').addEventListener('submit', function(e) {
         const recYes = document.getElementById('vc_recommend_committee_yes').checked;
         const recNo = document.getElementById('vc_recommend_committee_no').checked;
         const appYes = document.getElementById('vc_approved_council_yes').checked;
