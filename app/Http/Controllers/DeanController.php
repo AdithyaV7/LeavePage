@@ -102,6 +102,7 @@ class DeanController extends Controller
                 'updated_at' => now(),
             ]);
 
-        return redirect()->route('dean.index')->with('success', 'Application forwarded to VC.');
+        $msg = $request->dean_recommend ? 'Application forwarded to VC with recommendation.' : 'Application forwarded to VC without recommendation.';
+        return redirect()->route('dean.index')->with('success', $msg);
     }
 } 

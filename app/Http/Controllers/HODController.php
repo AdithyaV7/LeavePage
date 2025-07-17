@@ -92,8 +92,8 @@ class HODController extends Controller
             return redirect()->route('hod.index')->with('error', 'Application not found.');
         }
 
-        // If recommended, forward to Dean (status_id = 6), else keep at HOD with not recommended
-        $status_id = $request->hod_recommend ? 6 : 5;
+        // If recommended or not, always forward to Dean (status_id = 6)
+        $status_id = 6;
 
         DB::table('leave_details')
             ->where('id', $id)
@@ -120,34 +120,5 @@ class HODController extends Controller
         return redirect()->route('hod.index')->with('success', $msg);
     }
 
-    public function return(Request $request, $id)
-    {
-        $request->validate([
-            'remark' => 'required|string|max:1000',
-        ], [
-            'remark.required' => 'Remarks are required when returning an application.'
-        ]);
-
-        $application = DB::table('leave_details')
-            ->where('id', $id)
-            ->where('form_status', 2)
-            ->where('status_id', 5)
-            ->first();
-
-        if (!$application) {
-            return redirect()->route('hod.index')->with('error', 'Application not found.');
-        }
-
-        // Update status to Returned (form_status = 3, status_id = 2 for Rejected)
-        DB::table('leave_details')
-            ->where('id', $id)
-            ->update([
-                'form_status' => 3, // Returned
-                'status_id' => 2, // Rejected
-                'remark' => $request->remark,
-                'updated_at' => now()
-            ]);
-
-        return redirect()->route('hod.index')->with('success', 'Application returned to user successfully.');
-    }
+    
 } 

@@ -211,12 +211,12 @@
                 <!-- Add your Dean review fields here -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Dean's Recommendation</label><br>
-                    <input type="radio" name="dean_recommend" value="1" required> Recommend
-                    <input type="radio" name="dean_recommend" value="0"> Not Recommend
+                    <input type="radio" id="recommend_yes" name="dean_recommend" value="1" required> Recommend
+                    <input type="radio" id="recommend_no" name="dean_recommend" value="0"> Not Recommend
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Remarks (optional)</label>
-                    <textarea name="dean_remarks" class="form-control"></textarea>
+                    <label class="form-label fw-semibold" id="remarks-label">Remarks (optional)</label>
+                    <textarea name="dean_remarks" id="dean_remarks" class="form-control"></textarea>
                 </div>
                 <button type="submit" class="btn btn-success me-2">
                     <i class="fas fa-check me-2"></i>Forward
@@ -238,22 +238,19 @@
     </div>
 </div>
 <script>
-    // Show/hide remarks fields based on recommendation
     document.addEventListener('DOMContentLoaded', function() {
         const recommendYes = document.getElementById('recommend_yes');
         const recommendNo = document.getElementById('recommend_no');
-        const notRecommendDiv = document.getElementById('not-recommend-reason-div');
-        const recommendRemarksDiv = document.getElementById('recommend-remarks-div');
+        const remarks = document.getElementById('dean_remarks');
+        const remarksLabel = document.getElementById('remarks-label');
+
         function toggleRemarks() {
             if (recommendNo.checked) {
-                notRecommendDiv.style.display = 'block';
-                recommendRemarksDiv.style.display = 'none';
-            } else if (recommendYes.checked) {
-                notRecommendDiv.style.display = 'none';
-                recommendRemarksDiv.style.display = 'block';
+                remarks.required = true;
+                remarksLabel.innerHTML = "Remarks <span class='text-danger'>*</span>";
             } else {
-                notRecommendDiv.style.display = 'none';
-                recommendRemarksDiv.style.display = 'none';
+                remarks.required = false;
+                remarksLabel.textContent = "Remarks (optional)";
             }
         }
         recommendYes.addEventListener('change', toggleRemarks);
