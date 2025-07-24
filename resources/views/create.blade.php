@@ -148,6 +148,9 @@
                     <input type="number" name="duration" class="form-control" id="duration" value="{{ isset($leave) ? $leave->duration : '' }}">
                 </div>
 
+                <!-- need to add leave Details -->
+
+                
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Upload Leave Request Document <span class="text-danger">*</span></label>
                     <input type="file" id="leave_document_input" class="form-control mb-2" multiple>
