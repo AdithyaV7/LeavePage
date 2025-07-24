@@ -69,4 +69,9 @@ class LeaveDetail extends Model
     {
         return $this->belongsTo(PersonalDetail::class, 'nic', 'nic');
     }
+
+    public function leaveRequestDetails()
+    {
+        return $this->hasMany(LeaveRequestDetail::class, 'reference_no', 'reference_no');
+    }
 }

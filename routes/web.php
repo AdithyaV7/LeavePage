@@ -48,6 +48,10 @@ Route::middleware('checklogin')->group(function () {
     Route::post('/leave/upload-file', [LeaveController::class, 'uploadFile'])->name('leaves.uploadFile');
     Route::post('/leave/delete-file', [LeaveController::class, 'deleteFile'])->name('leaves.deleteFile');
 
+    // AJAX endpoints for travel document upload/delete
+    Route::post('/leave/upload-travel-document', [LeaveController::class, 'uploadTravelDocument'])->name('leaves.uploadTravelDocument');
+    Route::post('/leave/remove-travel-document', [LeaveController::class, 'removeTravelDocument'])->name('leaves.removeTravelDocument');
+
     Route::get('/leave/draft/create', [LeaveController::class, 'createDraft'])->name('leaves.draft.create');
 });
 

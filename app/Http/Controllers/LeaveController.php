@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PersonalDetail;
 use App\Models\LeaveDetail;
+use App\Models\LeaveRequestDetail;
 use App\Models\LeaveType;
 use App\Models\Status;
 use Illuminate\Support\Facades\Session;
@@ -115,7 +116,13 @@ class LeaveController extends Controller
             )
             ->get();
 
-        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark'));
+        // Load existing travel details if editing
+        $travelDetails = [];
+        if ($leave) {
+            $travelDetails = LeaveRequestDetail::where('reference_no', $leave->reference_no)->get();
+        }
+
+        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark', 'travelDetails'));
     }
 
     public function store(Request $request)
@@ -197,6 +204,10 @@ class LeaveController extends Controller
                 'form_status' => $request->form_status,
                 // Preserve existing remarks instead of setting to null
             ]);
+
+            // Handle travel details
+            $this->saveTravelDetails($request, $leave->reference_no);
+
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         } else {
             // Handle multiple file uploads for new applications
@@ -245,6 +256,10 @@ class LeaveController extends Controller
                 'reference_no' => $refNo,
                 'applied_date' => now()->addHours(5)->addMinutes(30),
             ]);
+
+            // Handle travel details
+            $this->saveTravelDetails($request, $refNo);
+
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         }
     }
@@ -345,4 +360,149 @@ class LeaveController extends Controller
         return redirect()->route('leaves.create', ['id' => $draft]);
     }
 
+    // AJAX: Upload travel document
+    public function uploadTravelDocument(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'detail' => 'required|string',
+            'country' => 'required|string',
+            'travel_from_date' => 'required|date',
+            'travel_to_date' => 'required|date|after_or_equal:travel_from_date',
+            'index' => 'required|integer',
+            'reference_no' => 'nullable|string',
+        ]);
+
+        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        if (!$user) return response()->json(['error' => 'User not found.'], 403);
+
+        // If we have a reference_no, we're updating an existing leave
+        $referenceNo = $request->reference_no;
+        if (!$referenceNo) {
+            // For new applications, we need to create a temporary reference number
+            // This will be updated when the main form is saved
+            $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
+            $referenceNo = 'TEMP_' . $timestamp . '_' . $user->empno;
+        }
+
+        // Upload the file
+        $file = $request->file('file');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $ext = $file->getClientOriginalExtension();
+        $date = now()->format('Ymd_His');
+        $filename = $originalName . '_' . $date . '.' . $ext;
+        $path = $file->storeAs('uploads/travel_documents', $filename, 'public');
+
+        // Check if a travel detail already exists for this reference and index
+        $travelDetail = \App\Models\LeaveRequestDetail::where('reference_no', $referenceNo)
+            ->where('detail', $request->detail)
+            ->where('country', $request->country)
+            ->where('travel_from_date', $request->travel_from_date)
+            ->where('travel_to_date', $request->travel_to_date)
+            ->first();
+
+        if ($travelDetail) {
+            // Update existing detail
+            $documents = $travelDetail->documents ?? [];
+
+            // Remove any existing file with the same original name
+            $documents = array_filter($documents, function($doc) use ($originalName) {
+                return strpos($doc, $originalName . '_') === false;
+            });
+
+            $documents[] = $path;
+            $travelDetail->documents = array_values($documents);
+            $travelDetail->save();
+        } else {
+            // Create new travel detail
+            $travelDetail = \App\Models\LeaveRequestDetail::create([
+                'reference_no' => $referenceNo,
+                'detail' => $request->detail,
+                'country' => $request->country,
+                'travel_from_date' => $request->travel_from_date,
+                'travel_to_date' => $request->travel_to_date,
+                'documents' => [$path],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'documents' => $travelDetail->documents,
+            'detail_id' => $travelDetail->id
+        ]);
+    }
+
+    // AJAX: Remove travel document
+    public function removeTravelDocument(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|string',
+            'index' => 'required|integer',
+            'detail_id' => 'nullable|integer',
+        ]);
+
+        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        if (!$user) return response()->json(['error' => 'User not found.'], 403);
+
+        if ($request->detail_id) {
+            $travelDetail = \App\Models\LeaveRequestDetail::find($request->detail_id);
+            if (!$travelDetail) {
+                return response()->json(['error' => 'Travel detail not found.'], 404);
+            }
+
+            $documents = $travelDetail->documents ?? [];
+            $documents = array_filter($documents, function($doc) use ($request) {
+                return $doc !== $request->file;
+            });
+
+            // Delete file from storage
+            \Storage::disk('public')->delete($request->file);
+
+            $travelDetail->documents = array_values($documents);
+            $travelDetail->save();
+
+            return response()->json([
+                'success' => true,
+                'documents' => $travelDetail->documents
+            ]);
+        }
+
+        return response()->json(['error' => 'No detail ID provided.'], 400);
+    }
+
+    // Helper method to save travel details
+    private function saveTravelDetails(Request $request, $referenceNo)
+    {
+        // Get travel details from the request
+        $travelDetails = $request->input('travel_detail', []);
+        $travelCountries = $request->input('travel_country', []);
+        $travelFromDates = $request->input('travel_from_datetime', []);
+        $travelToDates = $request->input('travel_to_datetime', []);
+        $travelDetailIds = $request->input('travel_detail_id', []);
+
+        // Clear existing travel details for this reference number
+        LeaveRequestDetail::where('reference_no', $referenceNo)->delete();
+
+        // Save new travel details
+        for ($i = 0; $i < count($travelDetails); $i++) {
+            if (!empty($travelDetails[$i]) && !empty($travelCountries[$i]) &&
+                !empty($travelFromDates[$i]) && !empty($travelToDates[$i])) {
+
+                // Check if this is an existing detail with documents
+                $existingDetail = null;
+                if (isset($travelDetailIds[$i]) && $travelDetailIds[$i]) {
+                    $existingDetail = LeaveRequestDetail::find($travelDetailIds[$i]);
+                }
+
+                LeaveRequestDetail::create([
+                    'reference_no' => $referenceNo,
+                    'detail' => $travelDetails[$i],
+                    'country' => $travelCountries[$i],
+                    'travel_from_date' => $travelFromDates[$i],
+                    'travel_to_date' => $travelToDates[$i],
+                    'documents' => $existingDetail ? $existingDetail->documents : null,
+                ]);
+            }
+        }
+    }
 }
