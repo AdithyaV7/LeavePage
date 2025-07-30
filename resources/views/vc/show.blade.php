@@ -109,6 +109,105 @@
             </div>
         </div>
     </div>
+
+    <!-- Travel Details -->
+    @if(isset($travelDetails) && count($travelDetails) > 0)
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark fw-semibold">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-plane me-2"></i>Travel Details
+                </div>
+                <small class="badge bg-dark">{{ count($travelDetails) }} destination(s)</small>
+            </div>
+        </div>
+        <div class="card-body">
+            @foreach($travelDetails as $index => $detail)
+                <div class="travel-detail-entry {{ $index > 0 ? 'border-top pt-3 mt-3' : '' }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Travel Details</label>
+                            <textarea class="form-control" rows="3" readonly>{{ $detail->detail }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Country</label>
+                            <input type="text" class="form-control" value="{{ $detail->country }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Travel From Date</label>
+                            <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($detail->travel_from_date)->format('F d, Y') }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Travel To Date</label>
+                            <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($detail->travel_to_date)->format('F d, Y') }}" readonly>
+                        </div>
+                        @if(!empty($detail->documents) && count($detail->documents) > 0)
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Travel Documents</label>
+                            <div class="travel-documents-container">
+                                @foreach($detail->documents as $doc)
+                                    <div class="document-item mb-3 p-3 border rounded">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-pdf text-danger me-2 fa-lg"></i>
+                                                <div>
+                                                    <span class="fw-semibold">{{ basename($doc) }}</span>
+                                                    <br>
+                                                    <small class="text-muted">Travel Document</small>
+                                                </div>
+                                            </div>
+                                            <div class="document-actions">
+                                                <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                                    <i class="fas fa-external-link-alt me-1"></i>Open
+                                                </a>
+                                                <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" download="{{ basename($doc) }}" class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-download me-1"></i>Download
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <div class="pdf-frame-container">
+                                            <iframe src="{{ asset('storage/' . ltrim($doc, '/')) }}"
+                                                    class="pdf-frame"
+                                                    frameborder="0">
+                                                <p>Your browser does not support this document format.
+                                                   <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank">Download the document</a>.
+                                                </p>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @else
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Travel Documents</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No travel documents uploaded for this destination.
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @else
+    <!-- No Travel Details -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white fw-semibold">
+            <i class="fas fa-plane me-2"></i>Travel Details
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                No travel details provided for this leave application.
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Documents -->
     <div class="card mb-4">
         <div class="card-header bg-success text-white fw-semibold">
@@ -275,4 +374,76 @@
         }
     });
 </script>
-@endsection 
+
+<style>
+.pdf-frame-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background-color: #f8f9fa;
+}
+
+.pdf-frame {
+    width: 100%;
+    height: 300px;
+    border: none;
+    display: block;
+}
+
+.pdf-frame-container:hover {
+    border-color: #adb5bd;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.travel-detail-entry {
+    position: relative;
+}
+
+.travel-detail-entry .border-top {
+    border-top: 1px solid #dee2e6 !important;
+}
+
+.travel-documents-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.document-item {
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.document-item:hover {
+    background-color: #e9ecef;
+    border-color: #007bff !important;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.document-actions .btn {
+    transition: all 0.2s ease;
+}
+
+.document-actions .btn:hover {
+    transform: translateY(-1px);
+}
+
+.travel-documents-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.travel-documents-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.travel-documents-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.travel-documents-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+@endsection

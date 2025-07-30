@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class LeaveController extends Controller
@@ -470,39 +471,134 @@ class LeaveController extends Controller
         return response()->json(['error' => 'No detail ID provided.'], 400);
     }
 
-    // Helper method to save travel details
+    // Helper method to save travel details (now handled via AJAX)
     private function saveTravelDetails(Request $request, $referenceNo)
     {
-        // Get travel details from the request
-        $travelDetails = $request->input('travel_detail', []);
-        $travelCountries = $request->input('travel_country', []);
-        $travelFromDates = $request->input('travel_from_datetime', []);
-        $travelToDates = $request->input('travel_to_datetime', []);
-        $travelDetailIds = $request->input('travel_detail_id', []);
+        // Travel details are now saved individually via AJAX
+        // This method is kept for backward compatibility but does nothing
+        // Travel details are saved using the saveTravelDetail() method
+    }
 
-        // Clear existing travel details for this reference number
-        LeaveRequestDetail::where('reference_no', $referenceNo)->delete();
+    // AJAX method to save individual travel detail
+    public function saveTravelDetail(Request $request)
+    {
+        try {
+            $request->validate([
+                'reference_no' => 'required|string',
+                'detail' => 'required|string',
+                'country' => 'required|string',
+                'travel_from_date' => 'required|date',
+                'travel_to_date' => 'required|date',
+            ]);
 
-        // Save new travel details
-        for ($i = 0; $i < count($travelDetails); $i++) {
-            if (!empty($travelDetails[$i]) && !empty($travelCountries[$i]) &&
-                !empty($travelFromDates[$i]) && !empty($travelToDates[$i])) {
+            // Handle document uploads
+            $uploadedDocuments = [];
+            \Log::info('Checking for uploaded files...'); // Debug log
+            \Log::info('Request has files: ' . ($request->hasFile('documents') ? 'Yes' : 'No')); // Debug log
 
-                // Check if this is an existing detail with documents
-                $existingDetail = null;
-                if (isset($travelDetailIds[$i]) && $travelDetailIds[$i]) {
-                    $existingDetail = LeaveRequestDetail::find($travelDetailIds[$i]);
+            if ($request->hasFile('documents')) {
+                \Log::info('Number of files: ' . count($request->file('documents'))); // Debug log
+                foreach ($request->file('documents') as $file) {
+                    \Log::info('Processing file: ' . $file->getClientOriginalName()); // Debug log
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads/travel_documents', $filename, 'public');
+                    $uploadedDocuments[] = $path;
+                    \Log::info('File saved to: ' . $path); // Debug log
                 }
+            } else {
+                \Log::info('No files found in request'); // Debug log
+            }
 
-                LeaveRequestDetail::create([
-                    'reference_no' => $referenceNo,
-                    'detail' => $travelDetails[$i],
-                    'country' => $travelCountries[$i],
-                    'travel_from_date' => $travelFromDates[$i],
-                    'travel_to_date' => $travelToDates[$i],
-                    'documents' => $existingDetail ? $existingDetail->documents : null,
-                ]);
+            // Create travel detail record
+            $travelDetail = \App\Models\LeaveRequestDetail::create([
+                'reference_no' => $request->reference_no,
+                'detail' => $request->detail,
+                'country' => $request->country,
+                'travel_from_date' => $request->travel_from_date,
+                'travel_to_date' => $request->travel_to_date,
+                'documents' => $uploadedDocuments,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Travel detail saved successfully',
+                'travel_detail' => $travelDetail
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving travel detail: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // AJAX method to delete travel detail
+    public function deleteTravelDetail($id)
+    {
+        try {
+            Log::info('Delete travel detail request for ID: ' . $id); // Debug log
+            $travelDetail = \App\Models\LeaveRequestDetail::find($id);
+            Log::info('Travel detail found: ' . ($travelDetail ? 'Yes' : 'No')); // Debug log
+
+            if (!$travelDetail) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Travel detail not found'
+                ], 404);
+            }
+
+            // Delete associated documents from storage
+            if ($travelDetail->documents) {
+                Log::info('Deleting documents: ' . json_encode($travelDetail->documents)); // Debug log
+                foreach ($travelDetail->documents as $doc) {
+                    if (Storage::disk('public')->exists($doc)) {
+                        Storage::disk('public')->delete($doc);
+                        Log::info('Deleted file: ' . $doc); // Debug log
+                    }
+                }
+            }
+
+            $travelDetail->delete();
+            Log::info('Travel detail deleted successfully'); // Debug log
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Travel detail deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting travel detail: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Test method for debugging file uploads
+    public function testUpload(Request $request)
+    {
+        Log::info('=== TEST UPLOAD DEBUG ===');
+        Log::info('Request method: ' . $request->method());
+        Log::info('Request has files: ' . ($request->hasFile('documents') ? 'Yes' : 'No'));
+        Log::info('All request data: ' . json_encode($request->all()));
+        Log::info('Files in request: ' . json_encode(array_keys($request->allFiles())));
+
+        if ($request->hasFile('documents')) {
+            Log::info('Documents count: ' . count($request->file('documents')));
+            foreach ($request->file('documents') as $index => $file) {
+                Log::info("File {$index}: " . $file->getClientOriginalName() . ' (' . $file->getSize() . ' bytes)');
             }
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Test upload received',
+            'has_files' => $request->hasFile('documents'),
+            'files_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0
+        ]);
     }
 }

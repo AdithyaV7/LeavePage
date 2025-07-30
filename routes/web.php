@@ -52,6 +52,16 @@ Route::middleware('checklogin')->group(function () {
     Route::post('/leave/upload-travel-document', [LeaveController::class, 'uploadTravelDocument'])->name('leaves.uploadTravelDocument');
     Route::post('/leave/remove-travel-document', [LeaveController::class, 'removeTravelDocument'])->name('leaves.removeTravelDocument');
 
+    // AJAX endpoint for temporary file upload
+    Route::post('/leave/upload-temp-file', [LeaveController::class, 'uploadTempFile'])->name('leaves.uploadTempFile');
+
+    // AJAX endpoint for saving travel details
+    Route::post('/leave/save-travel-detail', [LeaveController::class, 'saveTravelDetail'])->name('leaves.saveTravelDetail');
+    Route::delete('/leave/delete-travel-detail/{id}', [LeaveController::class, 'deleteTravelDetail'])->name('leaves.deleteTravelDetail');
+
+    // Test endpoint for debugging
+    Route::post('/leave/test-upload', [LeaveController::class, 'testUpload'])->name('leaves.testUpload');
+
     Route::get('/leave/draft/create', [LeaveController::class, 'createDraft'])->name('leaves.draft.create');
 });
 

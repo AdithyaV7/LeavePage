@@ -68,7 +68,23 @@ class DeanController extends Controller
             ? json_decode($application->consent_letter, true)
             : [];
 
-        return view('dean.show', compact('application'));
+        // Get travel details for this application
+        $travelDetails = DB::table('leave_request_details')
+            ->where('reference_no', $application->reference_no)
+            ->get()
+            ->map(function ($detail) {
+                // Decode documents JSON
+                $detail->documents = $detail->documents ? json_decode($detail->documents, true) : [];
+
+                // Ensure documents is always an array
+                if (!is_array($detail->documents)) {
+                    $detail->documents = [];
+                }
+
+                return $detail;
+            });
+
+        return view('dean.show', compact('application', 'travelDetails'));
     }
 
     public function recommend(Request $request, $id)
