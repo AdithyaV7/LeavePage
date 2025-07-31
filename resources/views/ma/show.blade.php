@@ -328,30 +328,32 @@
                             <i class="fas fa-tasks me-2"></i>Review Actions
                         </div>
                         <div class="card-body">
-                            <form id="approveForm" action="{{ route('ma.approve', $application->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                <div class="mb-3">
-                                    <label for="approveRemark" class="form-label fw-semibold">Remarks (Optional)</label>
-                                    <textarea class="form-control" id="approveRemark" name="remark" rows="3"
-                                              placeholder="Add any comments or remarks (optional)"></textarea>
+                            <div class="mb-3">
+                                <label for="actionRemark" class="form-label fw-semibold">Remarks</label>
+                                <textarea class="form-control" id="actionRemark" name="remark" rows="3"
+                                          placeholder="Add any comments or remarks"></textarea>
+                                <div id="remarkError" class="form-text text-danger" style="display: none;">
+                                    Remarks are required when returning an application.
                                 </div>
-                                <button type="submit" class="btn btn-success me-2">
-                                    <i class="fas fa-check me-2"></i>Forward
-                                </button>
-                            </form>
+                            </div>
 
-                            <form id="returnForm" action="{{ route('ma.return', $application->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                <div class="mb-3">
-                                    <label for="returnRemark" class="form-label fw-semibold text-danger">Return Remarks *</label>
-                                    <textarea class="form-control" id="returnRemark" name="remark" rows="3"
-                                              placeholder="Please provide a reason for returning this application (required)" required></textarea>
-                                    <div class="form-text text-danger">Remarks are required when returning an application.</div>
-                                </div>
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="fas fa-undo me-2"></i>Return to User
-                                </button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                <form id="approveForm" action="{{ route('ma.approve', $application->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <input type="hidden" id="approveRemarkInput" name="remark" value="">
+                                    <button type="submit" class="btn btn-success me-2">
+                                        <i class="fas fa-check me-2"></i>Forward
+                                    </button>
+                                </form>
+
+                                <form id="returnForm" action="{{ route('ma.return', $application->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <input type="hidden" id="returnRemarkInput" name="remark" value="">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-undo me-2"></i>Return to User
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     @else
@@ -374,30 +376,86 @@
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 
 <script>
-// Form validation
+// Form validation and submission handling
 document.getElementById('approveForm').addEventListener('submit', function(e) {
-    // Approve form doesn't need validation for remarks
-});
+    // Get the remark value and set it to the hidden input
+    const remarkValue = document.getElementById('actionRemark').value.trim();
+    document.getElementById('approveRemarkInput').value = remarkValue;
 
-document.getElementById('returnForm').addEventListener('submit', function(e) {
-    const remark = document.getElementById('returnRemark').value.trim();
-    if (!remark) {
-        e.preventDefault();
-        alert('Please provide remarks when returning an application.');
-        document.getElementById('returnRemark').focus();
-    }
-});
+    // Clear any previous error highlighting
+    clearRemarkError();
 
-// Confirm actions
-document.querySelector('#approveForm button[type="submit"]').addEventListener('click', function(e) {
+    // Confirm action
     if (!confirm('Are you sure you want to forward this application to HOD?')) {
         e.preventDefault();
     }
 });
 
-document.querySelector('#returnForm button[type="submit"]').addEventListener('click', function(e) {
+document.getElementById('returnForm').addEventListener('submit', function(e) {
+    const remarkValue = document.getElementById('actionRemark').value.trim();
+
+    // Validate that remarks are provided for return action
+    if (!remarkValue) {
+        e.preventDefault();
+        showRemarkError();
+        return;
+    }
+
+    // Set the remark value to the hidden input
+    document.getElementById('returnRemarkInput').value = remarkValue;
+
+    // Clear any previous error highlighting
+    clearRemarkError();
+
+    // Confirm action
     if (!confirm('Are you sure you want to return this application to the user?')) {
         e.preventDefault();
+    }
+});
+
+// Helper functions for error handling
+function showRemarkError() {
+    const remarkTextarea = document.getElementById('actionRemark');
+    const errorDiv = document.getElementById('remarkError');
+
+    // Highlight the textarea
+    remarkTextarea.classList.add('is-invalid');
+    remarkTextarea.style.borderColor = '#dc3545';
+    remarkTextarea.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
+
+    // Add shake animation
+    remarkTextarea.classList.add('shake-animation');
+    setTimeout(() => {
+        remarkTextarea.classList.remove('shake-animation');
+    }, 500);
+
+    // Show error message
+    errorDiv.style.display = 'block';
+
+    // Focus on the textarea
+    remarkTextarea.focus();
+
+    // Show alert
+    alert('Please provide remarks when returning an application.');
+}
+
+function clearRemarkError() {
+    const remarkTextarea = document.getElementById('actionRemark');
+    const errorDiv = document.getElementById('remarkError');
+
+    // Remove highlighting
+    remarkTextarea.classList.remove('is-invalid');
+    remarkTextarea.style.borderColor = '';
+    remarkTextarea.style.boxShadow = '';
+
+    // Hide error message
+    errorDiv.style.display = 'none';
+}
+
+// Clear error highlighting when user starts typing
+document.getElementById('actionRemark').addEventListener('input', function() {
+    if (this.value.trim()) {
+        clearRemarkError();
     }
 });
 </script>
@@ -532,6 +590,28 @@ document.querySelector('#returnForm button[type="submit"]').addEventListener('cl
 
 .travel-documents-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Error highlighting for remarks */
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* Animation for error highlighting */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shake-animation {
+    animation: shake 0.5s ease-in-out;
 }
 </style>
 </body>
