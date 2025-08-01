@@ -66,9 +66,11 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th>Ref No.</th>
+                                                    <th>Employee No</th>
                                                     <th>Name</th>
                                                     <th>Leave Type</th>
                                                     <th class="text-center">MA</th>
+                                                    <th class="text-center">HOD</th>
                                                     <th class="text-center">Dean</th>
                                                     <th class="text-center">VC</th>
                                                     <th class="text-center">Final</th>
@@ -78,15 +80,17 @@
                                                 @forelse($statusApplications as $app)
                                                     @php
                                                         $stages = [
-                                                            'ma' => 4,
-                                                            'dean' => 5,
-                                                            'vc' => 6,
-                                                            'final' => 8,
+                                                            'ma' => 4,      // Processing MA
+                                                            'hod' => 5,     // Processing HOD
+                                                            'dean' => 6,    // Processing Dean
+                                                            'vc' => 7,      // Processing VC
+                                                            'final' => 8,   // VC Checked (Final)
                                                         ];
                                                         $current = $app->status_id;
                                                     @endphp
                                                     <tr>
                                                         <td><span class="badge badge-primary">{{ $app->reference_no }}</span></td>
+                                                        <td><span class="badge badge-secondary">{{ $app->empno }}</span></td>
                                                         <td>{{ $app->name_with_initials }}</td>
                                                         <td><span class="badge badge-info">{{ $app->leave_type }}</span></td>
                                                         @foreach($stages as $stage => $sid)
@@ -103,7 +107,7 @@
                                                     </tr>
                                                 @empty
                                                     <tr>
-                                                        <td colspan="7" class="text-center text-muted">No applications in this stage.</td>
+                                                        <td colspan="9" class="text-center text-muted">No applications in this stage.</td>
                                                     </tr>
                                                 @endforelse
                                             </tbody>

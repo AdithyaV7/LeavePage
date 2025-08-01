@@ -10,6 +10,7 @@ class LeaveDetail extends Model
     use HasFactory;
 
     protected $fillable = [
+        'empno',
         'nic',
         'leave_type_id',
         'from_date',
@@ -68,6 +69,11 @@ class LeaveDetail extends Model
     public function user()
     {
         return $this->belongsTo(PersonalDetail::class, 'nic', 'nic');
+    }
+
+    public function personalDetail()
+    {
+        return $this->belongsTo(PersonalDetail::class, 'empno', 'empno');
     }
 
     public function leaveRequestDetails()

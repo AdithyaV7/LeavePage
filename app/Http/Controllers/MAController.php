@@ -21,6 +21,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'personal_details.department',
                 'personal_details.faculty',
@@ -196,6 +197,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'personal_details.department',
                 'personal_details.faculty',
@@ -216,6 +218,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'leave_types.name as leave_type',
                 'leave_details.status_id'
@@ -238,6 +241,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'personal_details.department',
                 'personal_details.faculty',
@@ -261,6 +265,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
+                'personal_details.empno',
                 'personal_details.name_with_initials',
                 'leave_types.name as leave_type',
                 'leave_details.status_id'

@@ -245,6 +245,7 @@ class LeaveController extends Controller
             $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
             $refNo = 'OL' . $timestamp . 'E' . $user->empno;
             \App\Models\LeaveDetail::create([
+                'empno' => $user->empno,
                 'nic' => $user->nic,
                 'leave_type_id' => $request->leave_type,
                 'from_date' => $request->from_date,
@@ -348,6 +349,7 @@ class LeaveController extends Controller
 
         // Create a new draft leave record
         $draft = DB::table('leave_details')->insertGetId([
+            'empno' => $user->empno,
             'nic' => $user->nic,
             'reference_no' => 'REF-' . strtoupper(uniqid()),
             'form_status' => 1, // Draft

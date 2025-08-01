@@ -12,7 +12,7 @@
         </li>
 
         <li class="nav-item d-none d-sm-inline-block">
-            <a href="{{ route('ma.dashboard.vcapproved') }}" class="nav-link">VC Checked --</a>
+            <a href="{{ route('ma.dashboard.vcapproved') }}" class="nav-link">VC Checked</a>
         </li>
     </ul>
     <!-- Right navbar links -->

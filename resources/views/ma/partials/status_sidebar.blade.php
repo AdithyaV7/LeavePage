@@ -11,6 +11,7 @@
                         <th>Name</th>
                         <th>Leave Type</th>
                         <th class="text-center">MA</th>
+                        <th class="text-center">HOD</th>
                         <th class="text-center">Dean</th>
                         <th class="text-center">VC</th>
                         <th class="text-center">Final</th>
@@ -21,10 +22,11 @@
                         @php
                             // Map your status_id to stages
                             $stages = [
-                                'ma' => 4,
-                                'dean' => 5,
-                                'vc' => 6,
-                                'final' => 8, // Adjust if needed
+                                'ma' => 4,      // Processing MA
+                                'hod' => 5,     // Processing HOD
+                                'dean' => 6,    // Processing Dean
+                                'vc' => 7,      // Processing VC
+                                'final' => 8,   // VC Checked (Final)
                             ];
                             $current = $app->status_id;
                         @endphp
@@ -46,7 +48,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted">No applications in this stage.</td>
+                            <td colspan="8" class="text-center text-muted">No applications in this stage.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -29,6 +29,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="px-3">Reference No</th>
+                                <th>Employee No</th>
                                 <th>Name with Initials</th>
                                 <th>Department</th>
                                 <th>Faculty</th>
@@ -43,6 +44,9 @@
                                 <tr>
                                     <td class="px-3">
                                         <span class="fw-semibold text-primary">{{ $application->reference_no }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ $application->empno }}</span>
                                     </td>
                                     <td>
                                         <div class="fw-semibold">{{ $application->name_with_initials }}</div>

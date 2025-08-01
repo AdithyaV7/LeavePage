@@ -131,24 +131,42 @@
             <div class="card-body row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Required Leave Type *</label>
-                    <select name="leave_type" class="form-select">
+                    <select name="leave_type" class="form-select @error('leave_type') is-invalid @enderror" id ="select-leave-types">
                         <option selected disabled value="">Select</option>
                         @foreach ($leaveTypes as $type)
-                            <option value="{{ $type->id }}" {{ isset($leave) && $leave->leave_type_id == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                            <option value="{{ $type->id }}"
+                                {{ (old('leave_type') == $type->id) || (isset($leave) && $leave->leave_type_id == $type->id) ? 'selected' : '' }}>
+                                {{ $type->name }}
+                            </option>
                         @endforeach
                     </select>
+                    @error('leave_type')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Start Date *</label>
-                    <input type="date" name="from_date" class="form-control" id="fromDate" value="{{ isset($leave) ? $leave->from_date : '' }}">
+                    <input type="date" name="from_date" class="form-control @error('from_date') is-invalid @enderror" id="fromDate"
+                           value="{{ old('from_date', isset($leave) ? $leave->from_date : '') }}">
+                    @error('from_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">End Date *</label>
-                    <input type="date" name="to_date" class="form-control" id="toDate" value="{{ isset($leave) ? $leave->to_date : '' }}">
+                    <input type="date" name="to_date" class="form-control @error('to_date') is-invalid @enderror" id="toDate"
+                           value="{{ old('to_date', isset($leave) ? $leave->to_date : '') }}">
+                    @error('to_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Duration (Days)</label>
-                    <input type="number" name="duration" class="form-control" id="duration" value="{{ isset($leave) ? $leave->duration : '' }}">
+                    <input type="number" name="duration" class="form-control @error('duration') is-invalid @enderror" id="duration"
+                           value="{{ old('duration', isset($leave) ? $leave->duration : '') }}">
+                    @error('duration')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Travel Details Card -->
@@ -324,6 +342,50 @@
                 <!-- Travel Details JavaScript -->
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
+                        // Restore main form data if preserved in sessionStorage
+                        const preservedData = sessionStorage.getItem('preserveMainFormData');
+                        if (preservedData) {
+                            try {
+                                const formData = JSON.parse(preservedData);
+
+                                // Restore leave type
+                                if (formData.leave_type) {
+                                    const leaveTypeSelect = document.querySelector('select[name="leave_type"]');
+                                    if (leaveTypeSelect) {
+                                        leaveTypeSelect.value = formData.leave_type;
+                                    }
+                                }
+
+                                // Restore dates and duration
+                                if (formData.from_date) {
+                                    const fromDateInput = document.querySelector('input[name="from_date"]');
+                                    if (fromDateInput) {
+                                        fromDateInput.value = formData.from_date;
+                                    }
+                                }
+
+                                if (formData.to_date) {
+                                    const toDateInput = document.querySelector('input[name="to_date"]');
+                                    if (toDateInput) {
+                                        toDateInput.value = formData.to_date;
+                                    }
+                                }
+
+                                if (formData.duration) {
+                                    const durationInput = document.querySelector('input[name="duration"]');
+                                    if (durationInput) {
+                                        durationInput.value = formData.duration;
+                                    }
+                                }
+
+                                // Clear the preserved data after restoring
+                                sessionStorage.removeItem('preserveMainFormData');
+                            } catch (e) {
+                                console.error('Error restoring form data:', e);
+                                sessionStorage.removeItem('preserveMainFormData');
+                            }
+                        }
+
                         let entryIndex = {{ isset($travelDetails) ? count($travelDetails) : 1 }};
                         const countries = @json($countries);
 
@@ -556,7 +618,16 @@
                                 .then(response => response.json())
                                 .then(data => {
                                     if (data.success) {
-                                        // Clear the form
+                                        // Store main form values before reload
+                                        const mainFormData = {
+                                            leave_type: document.querySelector('select[name="leave_type"]').value,
+                                            from_date: document.querySelector('input[name="from_date"]').value,
+                                            to_date: document.querySelector('input[name="to_date"]').value,
+                                            duration: document.querySelector('input[name="duration"]').value
+                                        };
+                                        sessionStorage.setItem('preserveMainFormData', JSON.stringify(mainFormData));
+
+                                        // Clear the travel form
                                         clearTravelForm();
 
                                         // Reload the page to refresh the table

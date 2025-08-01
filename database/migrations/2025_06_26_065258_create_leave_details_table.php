@@ -12,6 +12,8 @@ return new class extends Migration {
     {
         Schema::create('leave_details', function (Blueprint $table) {
             $table->id();
+            $table->string('empno');
+            $table->foreign('empno')->references('empno')->on('personal_details')->onDelete('cascade');
             $table->string('nic');
             $table->foreign('nic')->references('nic')->on('personal_details')->onDelete('cascade');
 

@@ -12,6 +12,7 @@
                     <thead>
                         <tr>
                             <th>Reference No</th>
+                            <th>Employee No</th>
                             <th>Name</th>
                             <th>Department</th>
                             <th>Faculty</th>
@@ -26,6 +27,9 @@
                             <tr>
                                 <td>
                                     <span class="badge badge-primary">{{ $application->reference_no }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-secondary">{{ $application->empno }}</span>
                                 </td>
                                 <td>
                                     <strong>{{ $application->name_with_initials }}</strong>
