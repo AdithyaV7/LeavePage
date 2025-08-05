@@ -223,17 +223,33 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Leave Request Documents</label>
                     @if(!empty($application->leave_documents) && count($application->leave_documents))
-                        <ul class="list-unstyled">
-                            @foreach($application->leave_documents as $doc)
-                                <li class="mb-2 d-flex align-items-center">
-                                    <i class="fas fa-file-pdf text-danger me-2"></i>
-                                    <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
-                                        <i class="fas fa-eye me-1"></i>View
-                                    </a>
-                                    <span class="text-muted">{{ basename($doc) }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
+                        @foreach($application->leave_documents as $doc)
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                        <span class="text-muted">{{ basename($doc) }}</span>
+                                    </div>
+                                    <div class="document-actions">
+                                        <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                            <i class="fas fa-external-link-alt me-1"></i>Open
+                                        </a>
+                                        <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" download="{{ basename($doc) }}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="pdf-frame-container">
+                                    <iframe src="{{ asset('storage/' . ltrim($doc, '/')) }}"
+                                            class="pdf-frame"
+                                            frameborder="0">
+                                        <p>Your browser does not support PDFs.
+                                           <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank">Download the PDF</a>.
+                                        </p>
+                                    </iframe>
+                                </div>
+                            </div>
+                        @endforeach
                     @else
                         <span class="text-muted">No document uploaded</span>
                     @endif
@@ -241,17 +257,33 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Consent Letters</label>
                     @if(!empty($application->consent_letters) && count($application->consent_letters))
-                        <ul class="list-unstyled">
-                            @foreach($application->consent_letters as $letter)
-                                <li class="mb-2 d-flex align-items-center">
-                                    <i class="fas fa-file-pdf text-danger me-2"></i>
-                                    <a href="{{ asset('storage/' . ltrim($letter, '/')) }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
-                                        <i class="fas fa-eye me-1"></i>View
-                                    </a>
-                                    <span class="text-muted">{{ basename($letter) }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
+                        @foreach($application->consent_letters as $letter)
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                        <span class="text-muted">{{ basename($letter) }}</span>
+                                    </div>
+                                    <div class="document-actions">
+                                        <a href="{{ asset('storage/' . ltrim($letter, '/')) }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                            <i class="fas fa-external-link-alt me-1"></i>Open
+                                        </a>
+                                        <a href="{{ asset('storage/' . ltrim($letter, '/')) }}" download="{{ basename($letter) }}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="pdf-frame-container">
+                                    <iframe src="{{ asset('storage/' . ltrim($letter, '/')) }}"
+                                            class="pdf-frame"
+                                            frameborder="0">
+                                        <p>Your browser does not support PDFs.
+                                           <a href="{{ asset('storage/' . ltrim($letter, '/')) }}" target="_blank">Download the PDF</a>.
+                                        </p>
+                                    </iframe>
+                                </div>
+                            </div>
+                        @endforeach
                     @else
                         <span class="text-muted">No document uploaded</span>
                     @endif
@@ -345,6 +377,23 @@
 </script>
 
 <style>
+.form-control[readonly] {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.btn {
+    font-weight: 500;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
 .pdf-frame-container {
     border: 1px solid #dee2e6;
     border-radius: 0.375rem;
@@ -394,6 +443,20 @@
 
 .document-actions .btn:hover {
     transform: translateY(-1px);
+}
+
+.image-preview-container {
+    text-align: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+}
+
+.document-preview-container {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .travel-documents-container::-webkit-scrollbar {
