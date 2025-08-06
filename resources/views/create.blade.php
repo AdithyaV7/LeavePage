@@ -20,7 +20,8 @@
     @endisset
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-0 fw-bold">
+            <h2 class="mb-0 fw-bold text-maroon dashboard-header">
+                <i class="fas fa-file-alt me-2 icon-gold"></i>
                 @if(isset($leave))
                     Application for Conference/ Seminar/ Training and Workshop
                 @else
@@ -28,7 +29,7 @@
                 @endif
             </h2>
         </div>
-        <a href="{{ route('leaves.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('leaves.index') }}" class="btn btn-outline-maroon">
             <i class="fas fa-arrow-left me-2"></i>Back to List
         </a>
     </div>
@@ -45,7 +46,7 @@
 
         <!-- Personal Details (readonly) -->
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white fw-semibold">
+            <div class="card-header card-header-maroon fw-semibold">
                 <i class="fas fa-user me-2"></i>Personal Details
             </div>
             <div class="card-body">
@@ -143,6 +144,7 @@
                     @error('leave_type')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <div id="leave_type_error" class="text-danger small d-none">Please select a leave type.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Start Date *</label>
@@ -151,6 +153,7 @@
                     @error('from_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <div id="from_date_error" class="text-danger small d-none">Please select a start date.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">End Date *</label>
@@ -159,14 +162,16 @@
                     @error('to_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <div id="to_date_error" class="text-danger small d-none">Please select an end date.</div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Duration (Days)</label>
+                    <label class="form-label fw-semibold">Duration (Days) *</label>
                     <input type="number" name="duration" class="form-control @error('duration') is-invalid @enderror" id="duration"
                            value="{{ old('duration', isset($leave) ? $leave->duration : '') }}">
                     @error('duration')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <div id="duration_error" class="text-danger small d-none">Please enter the duration.</div>
                 </div>
 
                 <!-- Travel Details Card -->
@@ -890,7 +895,7 @@
 <!-- End of need to add leave Details -->
                 
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Upload Leave Request Document <span class="text-danger"></span></label>
+                    <label class="form-label fw-semibold">Upload Leave Request Document <span class="text-danger">*</span></label>
                     <input type="file" id="leave_document_input" class="form-control mb-2" multiple>
                     <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="upload_leave_document_btn">Upload Leave Document(s)</button>
                     <div id="leave_document_tags" class="mb-2">
@@ -903,7 +908,7 @@
                             @endforeach
                         @endif
                     </div>
-                    <div id="leave_document_not_required" class="text-danger small d-none">At least one document is required.</div>
+                    <div id="leave_document_error" class="text-danger small d-none">Please upload at least one leave request document.</div>
                 </div>
 
                 <div class="col-md-12">
@@ -928,8 +933,9 @@
                 </div>
 
                 <div class="form-check mt-3">
-                    <input type="checkbox" name="confirm" class="form-check-input">
-                    <label class="form-check-label">I confirm that the above details are true and correct.</label>
+                    <input type="checkbox" name="confirm" class="form-check-input" id="confirm_checkbox">
+                    <label class="form-check-label">I confirm that the above details are true and correct. *</label>
+                    <div id="confirm_error" class="text-danger small d-none">Please confirm that the details are true and correct.</div>
                 </div>
             </div>
         </div>
@@ -938,9 +944,15 @@
         <input type="hidden" name="form_status" id="formStatus" value="4">
 
         <div class="text-center">
-            <button type="submit" class="btn btn-success px-4" onclick="setFormStatus(2)">Submit</button>
-            <button type="submit" class="btn btn-warning px-4" onclick="setFormStatus(1)">Save Draft</button>
-            <a href="{{ route('leaves.index') }}" class="btn btn-secondary px-4" id="cancel-btn">Cancel</a>
+            <button type="button" class="btn btn-maroon px-4" id="submit-btn">
+                <i class="fas fa-paper-plane me-2"></i>Submit
+            </button>
+            <button type="submit" class="btn btn-gold px-4" onclick="setFormStatus(1)">
+                <i class="fas fa-save me-2"></i>Save Draft
+            </button>
+            <a href="{{ route('leaves.index') }}" class="btn btn-outline-maroon px-4" id="cancel-btn">
+                <i class="fas fa-times me-2"></i>Cancel
+            </a>
         </div>
     </form>
 @if(isset($leave) && $leave->form_status == 1)
@@ -1015,25 +1027,173 @@
         calculateDuration();
     @endif
 
-    document.querySelector('button.btn-success').addEventListener('click', function(e) {
-        // Set required for all fields
-        document.querySelector('[name="leave_type"]').required = true;
-        document.querySelector('[name="from_date"]').required = true;
-        document.querySelector('[name="to_date"]').required = true;
-        document.querySelector('[name="duration"]').required = true;
-        document.querySelector('[name="leave_document"]').required = true;
-        document.querySelector('[name="consent_letter"]').required = true;
-        document.querySelector('[name="confirm"]').required = true;
+    // Validation function for compulsory fields
+    function validateAndSubmit(formStatus) {
+        console.log('validateAndSubmit called with formStatus:', formStatus);
+
+        // Hide all previous error messages
+        hideAllErrors();
+
+        let isValid = true;
+
+        // Validate Leave Type
+        const leaveType = document.querySelector('[name="leave_type"]');
+        if (!leaveType || !leaveType.value) {
+            showError('leave_type_error');
+            isValid = false;
+        }
+
+        // Validate Start Date
+        const fromDate = document.querySelector('[name="from_date"]');
+        if (!fromDate || !fromDate.value) {
+            showError('from_date_error');
+            isValid = false;
+        }
+
+        // Validate End Date
+        const toDate = document.querySelector('[name="to_date"]');
+        if (!toDate || !toDate.value) {
+            showError('to_date_error');
+            isValid = false;
+        }
+
+        // Validate Duration
+        const duration = document.querySelector('[name="duration"]');
+        if (!duration || !duration.value || duration.value <= 0) {
+            showError('duration_error');
+            isValid = false;
+        }
+
+        // Validate Leave Request Document (check if files are uploaded)
+        const leaveDocumentTags = document.getElementById('leave_document_tags');
+        const hasLeaveDocuments = leaveDocumentTags && leaveDocumentTags.children.length > 0;
+        if (!hasLeaveDocuments) {
+            showError('leave_document_error');
+            isValid = false;
+        }
+
+        // Validate Consent Letter (check if files are uploaded)
+        const consentLetterTags = document.getElementById('consent_letter_tags');
+        const hasConsentLetters = consentLetterTags && consentLetterTags.children.length > 0;
+        if (!hasConsentLetters) {
+            showError('consent_letter_required');
+            isValid = false;
+        }
+
+        // Validate Confirmation Checkbox
+        const confirmCheckbox = document.getElementById('confirm_checkbox');
+        if (!confirmCheckbox || !confirmCheckbox.checked) {
+            showError('confirm_error');
+            isValid = false;
+        }
+
+        // If all validations pass, submit the form
+        if (isValid) {
+            console.log('Validation passed, submitting form');
+            setFormStatus(formStatus);
+            document.querySelector('form').submit();
+        } else {
+            console.log('Validation failed');
+            // Scroll to the first error in document order
+            scrollToFirstError();
+        }
+    }
+
+    // Helper function to show error message
+    function showError(errorId) {
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+            errorElement.classList.remove('d-none');
+        }
+    }
+
+    // Helper function to hide all error messages
+    function hideAllErrors() {
+        const errorElements = [
+            'leave_type_error',
+            'from_date_error',
+            'to_date_error',
+            'duration_error',
+            'leave_document_error',
+            'consent_letter_required',
+            'confirm_error'
+        ];
+
+        errorElements.forEach(function(errorId) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.classList.add('d-none');
+            }
+        });
+    }
+
+    // Helper function to scroll to first error in document order
+    function scrollToFirstError() {
+        const errorSelectors = [
+            '#leave_type_error:not(.d-none)',
+            '#from_date_error:not(.d-none)',
+            '#to_date_error:not(.d-none)',
+            '#duration_error:not(.d-none)',
+            '#leave_document_error:not(.d-none)',
+            '#consent_letter_required:not(.d-none)',
+            '#confirm_error:not(.d-none)'
+        ];
+
+        for (let selector of errorSelectors) {
+            const errorElement = document.querySelector(selector);
+            if (errorElement) {
+                // Add a small delay to ensure the error is visible
+                setTimeout(function() {
+                    errorElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                    // Add a highlight effect
+                    errorElement.style.fontWeight = 'bold';
+                    setTimeout(function() {
+                        errorElement.style.fontWeight = '500';
+                    }, 2000);
+                }, 100);
+                break;
+            }
+        }
+    }
+
+    // Hide errors when user starts filling the fields
+    document.querySelector('[name="leave_type"]').addEventListener('change', function() {
+        document.getElementById('leave_type_error').classList.add('d-none');
     });
 
-    document.querySelector('button.btn-warning').addEventListener('click', function(e) {
-        // Remove required for all fields
+    document.querySelector('[name="from_date"]').addEventListener('change', function() {
+        document.getElementById('from_date_error').classList.add('d-none');
+    });
+
+    document.querySelector('[name="to_date"]').addEventListener('change', function() {
+        document.getElementById('to_date_error').classList.add('d-none');
+    });
+
+    document.querySelector('[name="duration"]').addEventListener('input', function() {
+        document.getElementById('duration_error').classList.add('d-none');
+    });
+
+    document.getElementById('confirm_checkbox').addEventListener('change', function() {
+        document.getElementById('confirm_error').classList.add('d-none');
+    });
+
+    // Add event listener for submit button
+    document.getElementById('submit-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        validateAndSubmit(2);
+    });
+
+    // For draft saving, remove required validation
+    document.querySelector('button.btn-gold').addEventListener('click', function(e) {
+        // Remove required for all fields when saving as draft
         document.querySelector('[name="leave_type"]').required = false;
         document.querySelector('[name="from_date"]').required = false;
         document.querySelector('[name="to_date"]').required = false;
         document.querySelector('[name="duration"]').required = false;
-        document.querySelector('[name="leave_document"]').required = false;
-        document.querySelector('[name="consent_letter"]').required = false;
         document.querySelector('[name="confirm"]').required = false;
     });
 
@@ -1061,6 +1221,13 @@
                 if (data.success) {
                     renderFileTags(tagsId, data.files, type);
                     input.value = '';
+
+                    // Hide error messages when files are uploaded
+                    if (type === 'leave_document') {
+                        document.getElementById('leave_document_error').classList.add('d-none');
+                    } else if (type === 'consent_letter') {
+                        document.getElementById('consent_letter_required').classList.add('d-none');
+                    }
                 } else {
                     alert(data.error || 'Upload failed');
                 }
@@ -1103,6 +1270,15 @@
             .then(data => {
                 if (data.success) {
                     renderFileTags(type === 'leave_document' ? 'leave_document_tags' : 'consent_letter_tags', data.files, type);
+
+                    // Show error messages if no files remain after deletion
+                    if (data.files.length === 0) {
+                        if (type === 'leave_document') {
+                            // Don't show error for leave document as it's not always required
+                        } else if (type === 'consent_letter') {
+                            // Don't auto-show error, let validation handle it
+                        }
+                    }
                 } else {
                     alert(data.error || 'Delete failed');
                 }
@@ -1110,30 +1286,7 @@
         }
     });
 
-    // Disable submit if not draft and files missing
-    function updateRequiredState() {
-        const isDraft = document.getElementById('formStatus').value == 1;
-        const submitBtn = document.querySelector('button.btn-success');
-        if (!isDraft) {
-            if (leaveDocumentFiles.length === 0) {
-                document.getElementById('leave_document_required').classList.remove('d-none');
-            } else {
-                document.getElementById('leave_document_required').classList.add('d-none');
-            }
-            if (consentLetterFiles.length === 0) {
-                document.getElementById('consent_letter_required').classList.remove('d-none');
-            } else {
-                document.getElementById('consent_letter_required').classList.add('d-none');
-            }
-            submitBtn.disabled = (leaveDocumentFiles.length === 0 || consentLetterFiles.length === 0);
-        } else {
-            document.getElementById('leave_document_required').classList.add('d-none');
-            document.getElementById('consent_letter_required').classList.add('d-none');
-            submitBtn.disabled = false;
-        }
-    }
-    updateRequiredState();
-    document.getElementById('formStatus').addEventListener('change', updateRequiredState);
+    // Note: updateRequiredState function removed as validation is now handled by validateAndSubmit function
 </script>
 
 <style>
@@ -1144,7 +1297,7 @@
 }
 
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    background: linear-gradient(135deg, #800000 0%, #800000 100%);
 }
 
 .travel-entry-card .card {
@@ -1153,9 +1306,20 @@
 }
 
 .travel-entry-card .card:hover {
-    border-color: #007bff;
+    border-color: #00ff37;
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
 }
+
+.bg-info {
+    --bs-bg-opacity: 1;
+    background-color: rgb(128 5 5) !important;
+}
+
+.bg-success {
+    --bs-bg-opacity: 1;
+    background-color: rgb(128 5 5) !important;
+}
+
 
 .upload-area {
     transition: all 0.3s ease;
@@ -1194,7 +1358,7 @@
 
 .uploaded-file-item:hover {
     background-color: #e9ecef;
-    border-color: #007bff !important;
+    border-color: #090a5f !important;
 }
 
 .file-name {
@@ -1313,6 +1477,46 @@
 .table-responsive {
     border-radius: 0.375rem;
     overflow: hidden;
+}
+
+/* Validation Error Styling */
+.text-danger.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    display: block;
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+}
+
+.text-danger.small:not(.d-none) {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Scroll target highlighting */
+.text-danger.small:target,
+.text-danger.small:focus {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 3px solid #dc3545;
+    padding-left: 0.5rem;
+}
+
+/* Header color change */
+
+.text-maroon {
+    color: rgba(0, 0, 0) !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Highlight required fields when validation fails */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 </style>
 

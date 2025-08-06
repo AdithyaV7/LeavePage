@@ -3,8 +3,12 @@
 @section('content')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0 fw-bold">HOD Dashboard</h2>
-        <div class="text-muted">Applications Pending HOD Review</div>
+        <h2 class="mb-0 fw-bold text-maroon dashboard-header">
+            <i class="fas fa-user-tie me-2 icon-gold"></i>HOD Dashboard
+        </h2>
+        <div class="text-muted">
+            <i class="fas fa-clock me-1"></i>Applications Pending HOD Review
+        </div>
     </div>
 
     @if(session('success'))
@@ -21,7 +25,7 @@
     @endif
 
     <div class="card">
-        <div class="card-header bg-dark text-white fw-semibold">
+        <div class="card-header card-header-maroon fw-semibold">
             <i class="fas fa-list me-2"></i>Submitted Applications
         </div>
         <div class="card-body p-0">
@@ -43,7 +47,7 @@
                             @foreach($applications as $app)
                                 <tr>
                                     <td class="px-3">
-                                        <span class="fw-semibold text-primary">{{ $app->reference_no }}</span>
+                                        <span class="fw-semibold text-maroon">{{ $app->reference_no }}</span>
                                     </td>
                                     <td>
                                         <div class="fw-semibold">{{ $app->name_with_initials }}</div>
@@ -51,7 +55,7 @@
                                     <td>{{ $app->department }}</td>
                                     <td>{{ $app->faculty }}</td>
                                     <td>
-                                        <span class="badge bg-info">{{ $app->leave_type }}</span>
+                                        <span class="badge badge-gold">{{ $app->leave_type }}</span>
                                     </td>
                                     <td>
                                         <div class="text-muted">
@@ -62,7 +66,7 @@
                                         </small>
                                     </td>
                                     <td class="text-center">
-                                        <a href="{{ route('hod.show', $app->id) }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ route('hod.show', $app->id) }}" class="btn btn-sm btn-outline-maroon">
                                             <i class="fas fa-eye me-1"></i>View
                                         </a>
                                     </td>

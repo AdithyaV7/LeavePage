@@ -1,0 +1,314 @@
+/* Maroon and Gold Theme for Leave Management System */
+/* Excludes MA views - only for Login, HOD, Dean, VC, and Leave Application views */
+
+:root {
+    /* Maroon shades */
+    --maroon-primary: #800020;      /* Deep maroon */
+    --maroon-secondary: #A0002A;    /* Medium maroon */
+    --maroon-light: #B33A3A;       /* Light maroon */
+    --maroon-dark: #5C0016;        /* Dark maroon */
+    
+    /* Gold shades */
+    --gold-primary: #FFD700;        /* Pure gold */
+    --gold-secondary: #FFC107;      /* Medium gold */
+    --gold-light: #FFF3CD;         /* Light gold */
+    --gold-dark: #B8860B;          /* Dark gold */
+    
+    /* Neutral colors */
+    --white: #FFFFFF;
+    --light-gray: #F8F9FA;
+    --medium-gray: #6C757D;
+    --dark-gray: #343A40;
+}
+
+/* Global body styling - keep white background */
+body {
+    background-color: var(--white) !important;
+    color: var(--dark-gray);
+}
+
+/* Header styling */
+.bg-maroon-primary {
+    background-color: var(--maroon-primary) !important;
+}
+
+.bg-maroon-secondary {
+    background-color: var(--maroon-secondary) !important;
+}
+
+.bg-gold-primary {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+.bg-gold-secondary {
+    background-color: var(--gold-secondary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+/* Text colors */
+.text-maroon {
+    color: var(--black-primary) !important;
+}
+
+.text-gold {
+    color: var(--gold-primary) !important;
+}
+
+/* Button styling */
+.btn-maroon {
+    background-color: var(--maroon-primary);
+    border-color: var(--maroon-primary);
+    color: white;
+}
+
+.btn-maroon:hover {
+    background-color: var(--maroon-dark);
+    border-color: var(--maroon-dark);
+    color: white;
+}
+
+.btn-gold {
+    background-color: var(--gold-primary);
+    border-color: var(--gold-primary);
+    color: var(--maroon-dark);
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-dark);
+    border-color: var(--gold-dark);
+    color: white;
+}
+
+.btn-outline-maroon {
+    color: var(--maroon-primary);
+    border-color: var(--maroon-primary);
+}
+
+.btn-outline-maroon:hover {
+    background-color: var(--maroon-primary);
+    border-color: var(--maroon-primary);
+    color: white;
+}
+
+.btn-outline-gold {
+    color: var(--gold-dark);
+    border-color: var(--gold-dark);
+}
+
+.btn-outline-gold:hover {
+    background-color: var(--gold-primary);
+    border-color: var(--gold-primary);
+    color: var(--maroon-dark);
+}
+
+/* Card styling */
+.card-header-maroon {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+.card-header-gold {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+    border-bottom: 2px solid var(--maroon-primary);
+}
+
+/* Override default Bootstrap card headers */
+.card-header.bg-primary {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+.card-header.bg-secondary {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+.card-header.bg-dark {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+.card-header.bg-warning {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+    border-bottom: 2px solid var(--maroon-primary);
+}
+
+/* Badge styling */
+.badge-maroon {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+}
+
+.badge-gold {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+/* Override default Bootstrap badges */
+.badge.bg-info {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--gold-secondary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+}
+
+/* Alert styling */
+.alert-maroon {
+    background-color: var(--maroon-light);
+    border-color: var(--maroon-primary);
+    color: white;
+}
+
+.alert-gold {
+    background-color: var(--gold-light);
+    border-color: var(--gold-primary);
+    color: var(--maroon-dark);
+}
+
+/* Table styling */
+.table-maroon thead th {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+    border-color: var(--maroon-secondary);
+}
+
+.table-gold thead th {
+    background-color: var(--gold-primary) !important;
+    color: var(--maroon-dark) !important;
+    border-color: var(--gold-secondary);
+}
+
+/* Form styling */
+.form-control:focus {
+    border-color: var(--maroon-primary);
+    box-shadow: 0 0 0 0.2rem rgba(128, 0, 32, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--maroon-primary);
+    box-shadow: 0 0 0 0.2rem rgba(128, 0, 32, 0.25);
+}
+
+/* Login page specific styling */
+.login-card {
+    border: 2px solid var(--gold-primary);
+    border-radius: 10px;
+}
+
+.login-header {
+    background: linear-gradient(135deg, var(--maroon-primary) 0%, var(--maroon-secondary) 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+/* Navigation and header overrides */
+header.bg-secondary {
+    background: linear-gradient(135deg, var(--maroon-primary) 0%, var(--maroon-secondary) 100%) !important;
+}
+
+/* Dashboard specific styling */
+.dashboard-header {
+    color: var(--maroon-primary);
+    border-bottom: 3px solid var(--maroon-primary);
+    padding-bottom: 10px;
+}
+
+/* Icon styling */
+.icon-maroon {
+    color: var(--maroon-primary);
+}
+
+.icon-gold {
+    color: var(--black-primary);
+}
+
+/* Hover effects */
+.hover-maroon:hover {
+    background-color: var(--maroon-light) !important;
+    color: white !important;
+}
+
+.hover-gold:hover {
+    background-color: var(--gold-light) !important;
+    color: var(--maroon-dark) !important;
+}
+
+/* New application button styling */
+.new-app-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--maroon-primary) 0%, var(--maroon-secondary) 100%);
+    border-radius: 50%;
+    color: white;
+    font-size: 2rem;
+    transition: all 0.3s ease;
+}
+
+.new-app-icon:hover {
+    background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-secondary) 100%);
+    color: var(--maroon-dark);
+    transform: scale(1.1);
+}
+
+/* Status badges with maroon-gold theme */
+.status-pending {
+    background-color: var(--gold-secondary) !important;
+    color: var(--maroon-dark) !important;
+}
+
+.status-approved {
+    background-color: var(--maroon-primary) !important;
+    color: white !important;
+}
+
+.status-returned {
+    background-color: var(--maroon-light) !important;
+    color: white !important;
+}
+
+/* Table row hover effects */
+.table-hover tbody tr:hover {
+    background-color: var(--gold-light) !important;
+}
+
+/* Override text colors */
+.text-primary {
+    color: var(--maroon-primary) !important;
+}
+
+.text-secondary {
+    color: var(--maroon-primary) !important;
+}
+
+/* Custom scrollbar for maroon-gold theme */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-gray);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--maroon-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--maroon-dark);
+}

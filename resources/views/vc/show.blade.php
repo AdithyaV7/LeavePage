@@ -362,21 +362,23 @@
             <form id="vcRecommendForm" action="{{ route('vc.recommend', $application->id) }}" method="POST">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">1. Recommended to submit to Leave and Awards Committee</label><br>
+                    <label class="form-label fw-semibold">1. Recommended to submit to Leave and Awards Committee *</label><br>
                     <input type="radio" name="vc_recommend_committee" value="1" id="vc_recommend_committee_yes"> Yes
                     <input type="radio" name="vc_recommend_committee" value="0" id="vc_recommend_committee_no"> No
+                    <div id="vc_recommend_committee_error" class="text-danger small d-none">Please select Yes or No for committee recommendation.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">2. Approved subject to the covering approval of the council</label><br>
+                    <label class="form-label fw-semibold">2. Approved subject to the covering approval of the council *</label><br>
                     <input type="radio" name="vc_approved_council" value="1" id="vc_approved_council_yes"> Yes
                     <input type="radio" name="vc_approved_council" value="0" id="vc_approved_council_no"> No
+                    <div id="vc_approved_council_error" class="text-danger small d-none">Please select Yes or No for council approval.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Remarks (optional)</label>
                     <textarea name="vc_remarks" class="form-control"></textarea>
                 </div>
                 <div class="mb-3 text-danger" id="vc-form-error" style="display:none;"></div>
-                <button type="submit" class="btn btn-success">Forward</button>
+                <button type="button" class="btn btn-success" id="vc-submit-btn">Forward</button>
             </form>
         </div>
     </div>
@@ -393,17 +395,100 @@
     </div>
 </div>
 <script>
-    // At least one of the two radio groups must be selected (yes or no)
-    document.getElementById('recommendForm').addEventListener('submit', function(e) {
-        const recYes = document.getElementById('vc_recommend_committee_yes').checked;
-        const recNo = document.getElementById('vc_recommend_committee_no').checked;
-        const appYes = document.getElementById('vc_approved_council_yes').checked;
-        const appNo = document.getElementById('vc_approved_council_no').checked;
-        if (!(recYes || recNo || appYes || appNo)) {
-            e.preventDefault();
-            document.getElementById('vc-form-error').innerText = 'Please select Yes or No for at least one of the options.';
-            document.getElementById('vc-form-error').style.display = 'block';
+    // VC Form Validation
+    function validateVCForm() {
+        hideAllVCErrors();
+        let isValid = true;
+
+        // Validate committee recommendation
+        const recommendCommittee = document.querySelector('input[name="vc_recommend_committee"]:checked');
+        if (!recommendCommittee) {
+            showVCError('vc_recommend_committee_error');
+            isValid = false;
         }
+
+        // Validate council approval
+        const approvedCouncil = document.querySelector('input[name="vc_approved_council"]:checked');
+        if (!approvedCouncil) {
+            showVCError('vc_approved_council_error');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    function showVCError(errorId) {
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+            errorElement.classList.remove('d-none');
+        }
+    }
+
+    function hideAllVCErrors() {
+        const errorIds = [
+            'vc_recommend_committee_error',
+            'vc_approved_council_error'
+        ];
+
+        errorIds.forEach(function(errorId) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.classList.add('d-none');
+            }
+        });
+    }
+
+    function scrollToFirstVCError() {
+        const errorSelectors = [
+            '#vc_recommend_committee_error:not(.d-none)',
+            '#vc_approved_council_error:not(.d-none)'
+        ];
+
+        for (let selector of errorSelectors) {
+            const errorElement = document.querySelector(selector);
+            if (errorElement) {
+                // Add a small delay to ensure the error is visible
+                setTimeout(function() {
+                    errorElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                    // Add a highlight effect
+                    errorElement.style.fontWeight = 'bold';
+                    setTimeout(function() {
+                        errorElement.style.fontWeight = '500';
+                    }, 2000);
+                }, 100);
+                break;
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Submit button event listener
+        document.getElementById('vc-submit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (validateVCForm()) {
+                document.getElementById('vcRecommendForm').submit();
+            } else {
+                // Scroll to first error in document order
+                scrollToFirstVCError();
+            }
+        });
+
+        // Hide errors when fields are filled
+        document.querySelectorAll('input[name="vc_recommend_committee"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('vc_recommend_committee_error').classList.add('d-none');
+            });
+        });
+
+        document.querySelectorAll('input[name="vc_approved_council"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('vc_approved_council_error').classList.add('d-none');
+            });
+        });
     });
 </script>
 
@@ -506,6 +591,33 @@
 
 .travel-documents-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Validation Error Styling */
+.text-danger.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    display: block;
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+}
+
+.text-danger.small:not(.d-none) {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Scroll target highlighting */
+.text-danger.small:target,
+.text-danger.small:focus {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 3px solid #dc3545;
+    padding-left: 0.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 

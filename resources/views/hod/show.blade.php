@@ -302,24 +302,28 @@
             <form id="approveForm" action="{{ route('hod.approve', $application->id) }}" method="POST" class="mb-3">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether adequate staff available for the continuation of academic programs during the period of applicant's leave</label><br>
+                    <label class="form-label fw-semibold">Whether adequate staff available for the continuation of academic programs during the period of applicant's leave *</label><br>
                     <input type="radio" name="hod_adequate_staff" value="1" required> Yes
                     <input type="radio" name="hod_adequate_staff" value="0"> No
+                    <div id="hod_adequate_staff_error" class="text-danger small d-none">Please select whether adequate staff is available.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether satisfactory agreements can be made to cover applicant's teaching activities and other commitments</label><br>
+                    <label class="form-label fw-semibold">Whether satisfactory agreements can be made to cover applicant's teaching activities and other commitments *</label><br>
                     <input type="radio" name="hod_teaching_covered" value="1" required> Yes
                     <input type="radio" name="hod_teaching_covered" value="0"> No
+                    <div id="hod_teaching_covered_error" class="text-danger small d-none">Please select whether teaching activities can be covered.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Whether the applicant has completed all requirements regarding examinations-related work</label><br>
+                    <label class="form-label fw-semibold">Whether the applicant has completed all requirements regarding examinations-related work *</label><br>
                     <input type="radio" name="hod_exam_work_completed" value="1" required> Yes
                     <input type="radio" name="hod_exam_work_completed" value="0"> No
+                    <div id="hod_exam_work_completed_error" class="text-danger small d-none">Please select whether exam work is completed.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Leave recommend or Leave not recommend</label><br>
+                    <label class="form-label fw-semibold">Leave recommend or Leave not recommend *</label><br>
                     <input type="radio" name="hod_recommend" value="1" required id="recommend_yes"> Recommend
                     <input type="radio" name="hod_recommend" value="0" id="recommend_no"> Not Recommend
+                    <div id="hod_recommend_error" class="text-danger small d-none">Please select whether to recommend or not recommend.</div>
                 </div>
                 <div class="mb-3" id="not-recommend-reason-div" style="display:none;">
                     <label class="form-label fw-semibold">If not recommended, please give reasons <span class="text-danger">*</span></label>
@@ -334,10 +338,11 @@
                     <input type="text" class="form-control" value="{{ date('Y-m-d') }}" readonly>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Signature (Name with initials)</label>
+                    <label class="form-label fw-semibold">Signature (Name with initials) *</label>
                     <input type="text" name="hod_signature" class="form-control" value="O. Wickramasinghe" required>
+                    <div id="hod_signature_error" class="text-danger small d-none">Please enter your signature.</div>
                 </div>
-                <button type="submit" class="btn btn-success me-2">
+                <button type="button" class="btn btn-success me-2" id="hod-submit-btn">
                     <i class="fas fa-check me-2"></i>Forward
                 </button>
             </form>
@@ -349,6 +354,156 @@
     </div>
     @endif
 </div>
+
+<script>
+    // HOD Form Validation
+    function validateHODForm() {
+        hideAllHODErrors();
+        let isValid = true;
+
+        // Validate adequate staff
+        const adequateStaff = document.querySelector('input[name="hod_adequate_staff"]:checked');
+        if (!adequateStaff) {
+            showHODError('hod_adequate_staff_error');
+            isValid = false;
+        }
+
+        // Validate teaching covered
+        const teachingCovered = document.querySelector('input[name="hod_teaching_covered"]:checked');
+        if (!teachingCovered) {
+            showHODError('hod_teaching_covered_error');
+            isValid = false;
+        }
+
+        // Validate exam work completed
+        const examWork = document.querySelector('input[name="hod_exam_work_completed"]:checked');
+        if (!examWork) {
+            showHODError('hod_exam_work_completed_error');
+            isValid = false;
+        }
+
+        // Validate recommendation
+        const recommend = document.querySelector('input[name="hod_recommend"]:checked');
+        if (!recommend) {
+            showHODError('hod_recommend_error');
+            isValid = false;
+        }
+
+        // Validate signature
+        const signature = document.querySelector('input[name="hod_signature"]');
+        if (!signature || !signature.value.trim()) {
+            showHODError('hod_signature_error');
+            isValid = false;
+        }
+
+        // Validate not recommend reason if "Not Recommend" is selected
+        const notRecommend = document.getElementById('recommend_no').checked;
+        const reasonTextarea = document.getElementById('not-recommend-reason');
+        if (notRecommend && (!reasonTextarea.value || !reasonTextarea.value.trim())) {
+            alert('Please provide a reason for not recommending.');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    function showHODError(errorId) {
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+            errorElement.classList.remove('d-none');
+        }
+    }
+
+    function hideAllHODErrors() {
+        const errorIds = [
+            'hod_adequate_staff_error',
+            'hod_teaching_covered_error',
+            'hod_exam_work_completed_error',
+            'hod_recommend_error',
+            'hod_signature_error'
+        ];
+
+        errorIds.forEach(function(errorId) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.classList.add('d-none');
+            }
+        });
+    }
+
+    function scrollToFirstHODError() {
+        const errorSelectors = [
+            '#hod_adequate_staff_error:not(.d-none)',
+            '#hod_teaching_covered_error:not(.d-none)',
+            '#hod_exam_work_completed_error:not(.d-none)',
+            '#hod_recommend_error:not(.d-none)',
+            '#hod_signature_error:not(.d-none)'
+        ];
+
+        for (let selector of errorSelectors) {
+            const errorElement = document.querySelector(selector);
+            if (errorElement) {
+                // Add a small delay to ensure the error is visible
+                setTimeout(function() {
+                    errorElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                    // Add a highlight effect
+                    errorElement.style.fontWeight = 'bold';
+                    setTimeout(function() {
+                        errorElement.style.fontWeight = '500';
+                    }, 2000);
+                }, 100);
+                break;
+            }
+        }
+    }
+
+    // Add event listeners to hide errors when fields are filled
+    document.addEventListener('DOMContentLoaded', function() {
+        // Submit button event listener
+        document.getElementById('hod-submit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (validateHODForm()) {
+                document.getElementById('approveForm').submit();
+            } else {
+                // Scroll to first error in document order
+                scrollToFirstHODError();
+            }
+        });
+
+        // Hide errors when fields are filled
+        document.querySelectorAll('input[name="hod_adequate_staff"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('hod_adequate_staff_error').classList.add('d-none');
+            });
+        });
+
+        document.querySelectorAll('input[name="hod_teaching_covered"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('hod_teaching_covered_error').classList.add('d-none');
+            });
+        });
+
+        document.querySelectorAll('input[name="hod_exam_work_completed"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('hod_exam_work_completed_error').classList.add('d-none');
+            });
+        });
+
+        document.querySelectorAll('input[name="hod_recommend"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('hod_recommend_error').classList.add('d-none');
+            });
+        });
+
+        document.querySelector('input[name="hod_signature"]').addEventListener('input', function() {
+            document.getElementById('hod_signature_error').classList.add('d-none');
+        });
+    });
+</script>
 
 <script>
     // Show/hide not recommend reason
@@ -475,6 +630,33 @@
 
 .travel-documents-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Validation Error Styling */
+.text-danger.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    display: block;
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+}
+
+.text-danger.small:not(.d-none) {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Scroll target highlighting */
+.text-danger.small:target,
+.text-danger.small:focus {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 3px solid #dc3545;
+    padding-left: 0.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 

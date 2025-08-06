@@ -4,7 +4,9 @@
 
 @section('content')
     <div class="container py-4">
-        <h3 class="mb-4 fw-bold text-center text-primary">New Leave Applications</h3>
+        <h3 class="mb-4 fw-bold text-center text-maroon dashboard-header">
+            <i class="fas fa-file-alt me-2 icon-gold"></i>New Leave Applications
+        </h3>
 
         <!-- New Application -->
         <div class="mb-4 text-center">
@@ -12,7 +14,7 @@
                 <div class="new-app-icon d-flex align-items-center justify-content-center mx-auto mb-2">
                     <i class="bi bi-journal-plus"></i>
                 </div>
-                <div><span class="fw-semibold text-secondary">Start a New Application</span></div>
+                <div><span class="fw-semibold text-maroon">Start a New Application</span></div>
             </a>
         </div>
 
@@ -20,16 +22,18 @@
         <div class="mb-4">
             <div class="card shadow-sm rounded-3 border-0">
                 <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-semibold text-dark">Drafts</h5>
-                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#draftsCollapse" aria-expanded="false" aria-controls="draftsCollapse">
+                    <h5 class="mb-0 fw-semibold text-maroon">
+                        <i class="fas fa-edit me-2 icon-gold"></i>Drafts
+                    </h5>
+                    <button class="btn btn-outline-maroon btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#draftsCollapse" aria-expanded="false" aria-controls="draftsCollapse">
                         <i class="bi bi-plus" id="toggleIcon"></i>
                     </button>
                 </div>
                 <div class="collapse show card-body pt-2 pb-0 px-3" id="draftsCollapse">
                     @forelse ($drafts as $draft)
-                        <div class="bg-light border-0 rounded-2 p-3 mb-2 d-flex justify-content-between align-items-center shadow-sm">
+                        <div class="bg-light border-0 rounded-2 p-3 mb-2 d-flex justify-content-between align-items-center shadow-sm hover-gold">
                             <a href="{{ route('leaves.create', ['id' => $draft->id]) }}" class="text-decoration-none text-dark">
-                                <i class="bi bi-pencil-square me-2 text-primary"></i>
+                                <i class="bi bi-pencil-square me-2 text-maroon"></i>
                                 <strong>Ref No:</strong> {{ $draft->reference_no ?? 'N/A' }}<br>
                                 <span class="text-muted small">{{ \Carbon\Carbon::parse($draft->updated_at)->addHours(5)->addMinutes(30)->format('Y-m-d h:i a') }}</span>
                             </a>
@@ -52,7 +56,9 @@
         <div class="mb-4">
             <div class="card shadow-sm rounded-3 border-0">
                 <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-semibold text-dark">Previous Leaves</h5>
+                    <h5 class="mb-0 fw-semibold text-maroon">
+                        <i class="fas fa-history me-2 icon-gold"></i>Previous Leaves
+                    </h5>
                 </div>
                 <div class="card-body pt-2 pb-0 px-3">
                     <table class="table table-striped table-bordered bg-white align-middle mb-0">

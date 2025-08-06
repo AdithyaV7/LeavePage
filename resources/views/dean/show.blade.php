@@ -341,15 +341,16 @@
                 @csrf
                 <!-- Add your Dean review fields here -->
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Dean's Recommendation</label><br>
+                    <label class="form-label fw-semibold">Dean's Recommendation *</label><br>
                     <input type="radio" id="recommend_yes" name="dean_recommend" value="1" required> Recommend
                     <input type="radio" id="recommend_no" name="dean_recommend" value="0"> Not Recommend
+                    <div id="dean_recommend_error" class="text-danger small d-none">Please select whether to recommend or not recommend.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold" id="remarks-label">Remarks (optional)</label>
                     <textarea name="dean_remarks" id="dean_remarks" class="form-control"></textarea>
                 </div>
-                <button type="submit" class="btn btn-success me-2">
+                <button type="button" class="btn btn-success me-2" id="dean-submit-btn">
                     <i class="fas fa-check me-2"></i>Forward
                 </button>
             </form>
@@ -368,6 +369,87 @@
         <div>University of Sri Jayewardenepura</div>
     </div>
 </div>
+<script>
+    // Dean Form Validation
+    function validateDeanForm() {
+        hideAllDeanErrors();
+        let isValid = true;
+
+        // Validate recommendation
+        const recommend = document.querySelector('input[name="dean_recommend"]:checked');
+        if (!recommend) {
+            showDeanError('dean_recommend_error');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    function showDeanError(errorId) {
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+            errorElement.classList.remove('d-none');
+        }
+    }
+
+    function hideAllDeanErrors() {
+        const errorIds = ['dean_recommend_error'];
+
+        errorIds.forEach(function(errorId) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.classList.add('d-none');
+            }
+        });
+    }
+
+    function scrollToFirstDeanError() {
+        const errorSelectors = [
+            '#dean_recommend_error:not(.d-none)'
+        ];
+
+        for (let selector of errorSelectors) {
+            const errorElement = document.querySelector(selector);
+            if (errorElement) {
+                // Add a small delay to ensure the error is visible
+                setTimeout(function() {
+                    errorElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                    // Add a highlight effect
+                    errorElement.style.fontWeight = 'bold';
+                    setTimeout(function() {
+                        errorElement.style.fontWeight = '500';
+                    }, 2000);
+                }, 100);
+                break;
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Submit button event listener
+        document.getElementById('dean-submit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (validateDeanForm()) {
+                document.getElementById('recommendForm').submit();
+            } else {
+                // Scroll to first error in document order
+                scrollToFirstDeanError();
+            }
+        });
+
+        // Hide errors when fields are filled
+        document.querySelectorAll('input[name="dean_recommend"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('dean_recommend_error').classList.add('d-none');
+            });
+        });
+    });
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const recommendYes = document.getElementById('recommend_yes');
@@ -489,6 +571,33 @@
 
 .travel-documents-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Validation Error Styling */
+.text-danger.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    display: block;
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+}
+
+.text-danger.small:not(.d-none) {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Scroll target highlighting */
+.text-danger.small:target,
+.text-danger.small:focus {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 3px solid #dc3545;
+    padding-left: 0.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 

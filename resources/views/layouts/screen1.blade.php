@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Maroon and Gold Theme -->
+    <link rel="stylesheet" href="{{ asset('css/maroon-gold-theme.css') }}">
 
 <style>
     body {
@@ -18,17 +20,17 @@
 
 </head>
 <body>
-    <header class="bg-secondary text-white py-3 fixed-top">
+    <header class="bg-maroon-primary text-white py-3 fixed-top">
         <div class="container d-flex justify-content-between align-items-center">
             <div>
-                <a href="{{ route('leaves.index') }}" class="text-white text-decoration-none fw-bold fs-5">
-                    <i class="bi bi-house"></i>    Home
+                <a href="{{ route('leaves.index') }}" class="text-white text-decoration-none fw-bold fs-5 hover-gold">
+                    <i class="bi bi-house me-1"></i>Home
                 </a>
             </div>
-            <h4 class="mb-0 text-center w-100">Leave Requests</h4>
+            <h4 class="mb-0 text-center w-100 text-gold">Leave Requests</h4>
             <div>
-                <a href="{{ route('logout') }}" class="text-white text-decoration-none fw-bold">
-                    <i class="bi bi-box-arrow-right"></i> Logout
+                <a href="{{ route('logout') }}" class="text-white text-decoration-none fw-bold hover-gold">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
                 </a>
             </div>
         </div>
