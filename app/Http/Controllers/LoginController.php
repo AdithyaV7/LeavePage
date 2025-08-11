@@ -28,6 +28,17 @@ class LoginController extends Controller
         }
     }
 
+    // URL-based login by employee ID
+    public function loginById($id)
+    {
+        $user = DB::table('users')->where('empno', $id)->first();
+        if ($user) {
+            session(['empno' => $user->empno]);
+            return redirect()->route('leaves.index');
+        }
+        return redirect()->route('login')->withErrors(['login' => 'User not found']);
+    }
+
     public function logout()
     {
         session()->forget('empno');

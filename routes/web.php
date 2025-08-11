@@ -10,9 +10,13 @@ use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 use App\Http\Controllers\VCController;
 
 // Login routes
-Route::get('/', [LoginController::class, 'showLogin'])->name('login');
+// Set the default login page to MA page
+Route::get('/', [MAController::class, 'index'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// URL-based login by employee ID: /leaves/{id}
+Route::get('/leaves/{id}', [LoginController::class, 'loginById'])->name('login.byid');
 
 // MA routes (no authentication required)
 Route::get('/MApage', [MAController::class, 'index'])->name('ma.index');
