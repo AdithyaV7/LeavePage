@@ -23,6 +23,13 @@ class LeaveDetail extends Model
         'reference_no',
         'form_status',
         'remark',
+        'department_id',
+        'faculty_id',
+        // Employee numbers for approval hierarchy
+        'ma_empno',
+        'hod_empno',
+        'dean_empno',
+        'vc_empno',
         // HOD fields
         'hod_adequate_staff',
         'hod_teaching_covered',

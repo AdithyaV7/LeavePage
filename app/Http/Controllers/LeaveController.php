@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\PersonalDetail;
+
 use App\Models\LeaveDetail;
 use App\Models\LeaveRequestDetail;
 use App\Models\LeaveType;
@@ -20,8 +20,8 @@ class LeaveController extends Controller
 
     public function index()
     {
-        // 1. Get personal detail from empno
-        $user = DB::table('personal_details')->where('empno', session('empno'))->first();
+        // 1. Get employee detail from empno
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user)
             abort(404, 'User not found');
 
@@ -58,7 +58,7 @@ class LeaveController extends Controller
 
     public function destroy($id)
     {
-        $user = DB::table('personal_details')->where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) abort(404);
 
         // Make sure it's a draft belonging to this user
@@ -76,7 +76,24 @@ class LeaveController extends Controller
     //.................................................................................
     public function create(Request $request)
     {
-        $user = DB::table('personal_details')->where('empno', session('empno'))->first();
+        // Get employee data from employees table with related information
+        $user = DB::table('employees')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
+            ->where('employees.employee_no', session('empno'))
+            ->select(
+                'employees.employee_no as empno',
+                'employees.nic',
+                'employees.initials as name_with_initials',
+                'employees.name_denoted_by_initials as names_denoted_by_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
+                'designations.designation_name as designation',
+                'employees.mobile_no as mobile'
+            )
+            ->first();
+
         if (!$user)
             abort(404, 'User not found');
 
@@ -151,7 +168,7 @@ class LeaveController extends Controller
 
         $validated = $request->validate($rules);
 
-        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return back()->with('error', 'User not found.');
 
         if ($isUpdate) {
@@ -203,6 +220,8 @@ class LeaveController extends Controller
                 'consent_letter' => $consentLetterPaths,
                 'status_id' => $request->form_status == 1 ? 3 : 4,
                 'form_status' => $request->form_status,
+                'department_id' => $user->department_id,
+                'faculty_id' => $user->faculty_id,
                 // Preserve existing remarks instead of setting to null
             ]);
 
@@ -243,9 +262,9 @@ class LeaveController extends Controller
                 }
             }
             $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
-            $refNo = 'OL' . $timestamp . 'E' . $user->empno;
+            $refNo = 'OL' . $timestamp . 'E' . $user->employee_no;
             \App\Models\LeaveDetail::create([
-                'empno' => $user->empno,
+                'empno' => $user->employee_no,
                 'nic' => $user->nic,
                 'leave_type_id' => $request->leave_type,
                 'from_date' => $request->from_date,
@@ -257,6 +276,8 @@ class LeaveController extends Controller
                 'form_status' => $request->form_status,
                 'reference_no' => $refNo,
                 'applied_date' => now()->addHours(5)->addMinutes(30),
+                'department_id' => $user->department_id,
+                'faculty_id' => $user->faculty_id,
             ]);
 
             // Handle travel details
@@ -275,7 +296,7 @@ class LeaveController extends Controller
             'leave_id' => 'required|integer|exists:leave_details,id',
         ]);
 
-        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return response()->json(['error' => 'User not found.'], 403);
 
         $leave = \App\Models\LeaveDetail::where('id', $request->leave_id)
@@ -315,7 +336,7 @@ class LeaveController extends Controller
             'leave_id' => 'required|integer|exists:leave_details,id',
         ]);
 
-        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return response()->json(['error' => 'User not found.'], 403);
 
         $leave = \App\Models\LeaveDetail::where('id', $request->leave_id)
@@ -344,17 +365,19 @@ class LeaveController extends Controller
      */
     public function createDraft(Request $request)
     {
-        $user = DB::table('personal_details')->where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) abort(404, 'User not found');
 
         // Create a new draft leave record
         $draft = DB::table('leave_details')->insertGetId([
-            'empno' => $user->empno,
+            'empno' => $user->employee_no,
             'nic' => $user->nic,
             'reference_no' => 'REF-' . strtoupper(uniqid()),
             'form_status' => 1, // Draft
             'status_id' => 3, // Editing or Draft status
             'applied_date' => now(),
+            'department_id' => $user->department_id,
+            'faculty_id' => $user->faculty_id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -376,7 +399,7 @@ class LeaveController extends Controller
             'reference_no' => 'nullable|string',
         ]);
 
-        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return response()->json(['error' => 'User not found.'], 403);
 
         // If we have a reference_no, we're updating an existing leave
@@ -385,7 +408,7 @@ class LeaveController extends Controller
             // For new applications, we need to create a temporary reference number
             // This will be updated when the main form is saved
             $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
-            $referenceNo = 'TEMP_' . $timestamp . '_' . $user->empno;
+            $referenceNo = 'TEMP_' . $timestamp . '_' . $user->employee_no;
         }
 
         // Upload the file
@@ -444,7 +467,7 @@ class LeaveController extends Controller
             'detail_id' => 'nullable|integer',
         ]);
 
-        $user = \App\Models\PersonalDetail::where('empno', session('empno'))->first();
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return response()->json(['error' => 'User not found.'], 403);
 
         if ($request->detail_id) {

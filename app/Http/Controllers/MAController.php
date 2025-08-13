@@ -8,23 +8,32 @@ use Illuminate\Support\Facades\Storage;
 
 class MAController extends Controller
 {
+    // Hardcoded MA user ID - change this to switch to a different MA
+    private const MA_USER_ID = 12466; //15097 for testing 
+
     public function index()
     {
+        $maUserId = self::MA_USER_ID;
+
         // Get all submitted applications (form_status = 2) that are being processed by MA (status_id = 4)
+        // and are assigned to this specific MA
         $applications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 4) // Processing MA
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.department',
-                'personal_details.faculty',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
                 'leave_types.name as leave_type',
                 'statuses.status'
@@ -36,22 +45,29 @@ class MAController extends Controller
 
     public function show($id)
     {
+        $maUserId = self::MA_USER_ID;
+
         // Get the specific application with all details
+        // Only show if the employee is assigned to this MA
         $application = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->select(
                 'leave_details.*',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.names_denoted_by_initials',
-                'personal_details.department',
-                'personal_details.faculty',
-                'personal_details.designation',
-                'personal_details.mobile',
-                'personal_details.nic',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'employees.name_denoted_by_initials as names_denoted_by_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
+                'designations.designation_name as designation',
+                'employees.mobile_no as mobile',
+                'employees.nic',
                 'leave_types.name as leave_type_name',
                 'statuses.status'
             )
@@ -120,10 +136,15 @@ class MAController extends Controller
             'remark' => 'nullable|string|max:1000',
         ]);
 
+        $maUserId = self::MA_USER_ID;
+
         $application = DB::table('leave_details')
-            ->where('id', $id)
-            ->where('form_status', 2) // Complete/Submitted
-            ->where('status_id', 4) // Processing MA
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->where('leave_details.id', $id)
+            ->where('leave_details.form_status', 2) // Complete/Submitted
+            ->where('leave_details.status_id', 4) // Processing MA
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
+            ->select('leave_details.*')
             ->first();
 
         if (!$application) {
@@ -142,6 +163,7 @@ class MAController extends Controller
             ->where('id', $id)
             ->update([
                 'status_id' => 5, // Processing HOD
+                'ma_empno' => self::MA_USER_ID, // Record which MA processed this
                 'remark' => DB::raw("CONCAT(COALESCE(remark, ''), '" . addslashes($newRemark) . "')"),
                 'updated_at' => now()
             ]);
@@ -157,10 +179,15 @@ class MAController extends Controller
             'remark.required' => 'Remarks are required when returning an application.'
         ]);
 
+        $maUserId = self::MA_USER_ID;
+
         $application = DB::table('leave_details')
-            ->where('id', $id)
-            ->where('form_status', 2) // Complete/Submitted
-            ->where('status_id', 4) // Processing MA
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->where('leave_details.id', $id)
+            ->where('leave_details.form_status', 2) // Complete/Submitted
+            ->where('leave_details.status_id', 4) // Processing MA
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
+            ->select('leave_details.*')
             ->first();
 
         if (!$application) {
@@ -177,6 +204,7 @@ class MAController extends Controller
             ->update([
                 'form_status' => 3, // Returned
                 'status_id' => 2, // Rejected
+                'ma_empno' => self::MA_USER_ID, // Record which MA processed this
                 'remark' => DB::raw("CONCAT(COALESCE(remark, ' '), '" . addslashes($newRemark) . "')"),
                 'updated_at' => now()
             ]);
@@ -186,21 +214,26 @@ class MAController extends Controller
 
     public function dashboard()
     {
-        // Get all applications that are being processed by MA
+        $maUserId = self::MA_USER_ID;
+
+        // Get all applications that are being processed by MA and assigned to this MA
         $applications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->whereIn('leave_details.form_status', [2, 3]) // Complete/Submitted
             ->whereIn('leave_details.status_id', [1, 2, 4, 5, 6, 7,8])
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.department',
-                'personal_details.faculty',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
                 'leave_types.name as leave_type',
                 'statuses.status',
@@ -209,17 +242,18 @@ class MAController extends Controller
             )
             ->get();
 
-        // Applications for status sidebar (status_id 4-8)
+        // Applications for status sidebar (status_id 4-8) assigned to this MA
         $statusApplications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->whereBetween('leave_details.status_id', [4, 8])
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
                 'leave_types.name as leave_type',
                 'leave_details.status_id'
             )
@@ -230,21 +264,26 @@ class MAController extends Controller
 
     public function dashboardVcApproved()
     {
-        // Get all applications with status_id = 8 (VC Approved)
+        $maUserId = self::MA_USER_ID;
+
+        // Get all applications with status_id = 8 (VC Approved) assigned to this MA
         $applications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 8) // VC Approved
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.department',
-                'personal_details.faculty',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
                 'leave_types.name as leave_type',
                 'statuses.status',
@@ -257,16 +296,19 @@ class MAController extends Controller
 
     public function statusPage()
     {
+        $maUserId = self::MA_USER_ID;
+
         $statusApplications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->whereBetween('leave_details.status_id', [4, 8])
+            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
                 'leave_types.name as leave_type',
                 'leave_details.status_id'
             )

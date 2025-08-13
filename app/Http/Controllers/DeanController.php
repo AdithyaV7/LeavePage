@@ -7,22 +7,55 @@ use Illuminate\Support\Facades\DB;
 
 class DeanController extends Controller
 {
+    // Hardcoded Dean employee number - change this to switch to a different Dean
+    private const DEAN_EMP_NO = 5045; // Dean for faculty 1 (has leave applications)
+
+    /**
+     * Get faculty IDs for the current Dean
+     * Returns array of faculty IDs or shows error page if Dean not found
+     */
+    private function getDeanFaculties()
+    {
+        $deanEmpNo = self::DEAN_EMP_NO;
+
+        // Check if this employee is a valid Dean in faculty_deans table
+        $faculties = DB::table('faculty_deans')
+            ->where('emp_no', $deanEmpNo)
+            ->where('active_status', 1) // Only active appointments
+            ->whereRaw('(end_date IS NULL OR end_date >= CURDATE())') // Current or future end date
+            ->pluck('faculty_id')
+            ->toArray();
+
+        if (empty($faculties)) {
+            // Dean not found in faculty_deans table - show error
+            abort(403, 'Access denied. Employee ' . $deanEmpNo . ' is not authorized as a Dean.');
+        }
+
+        return $faculties;
+    }
+
     public function index()
     {
-        // Get all applications for Dean review (status_id = 6)
+        // Get faculty IDs for this Dean
+        $facultyIds = $this->getDeanFaculties();
+
+        // Get all applications for Dean review (status_id = 6) from assigned faculties
         $applications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 6) // Processing Dean
+            ->whereIn('employees.faculty_id', $facultyIds) // Filter by Dean's faculties
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.name_with_initials',
-                'personal_details.department',
-                'personal_details.faculty',
+                'employees.initials as name_with_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
                 'leave_types.name as leave_type',
                 'statuses.status'
@@ -34,23 +67,30 @@ class DeanController extends Controller
 
     public function show($id)
     {
+        // Get faculty IDs for this Dean
+        $facultyIds = $this->getDeanFaculties();
+
         $application = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
             ->where('leave_details.form_status', 2)
             ->where('leave_details.status_id', 6)
+            ->whereIn('employees.faculty_id', $facultyIds) // Filter by Dean's faculties
             ->select(
                 'leave_details.*',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.names_denoted_by_initials',
-                'personal_details.department',
-                'personal_details.faculty',
-                'personal_details.designation',
-                'personal_details.mobile',
-                'personal_details.nic',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'employees.name_denoted_by_initials as names_denoted_by_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
+                'designations.designation_name as designation',
+                'employees.mobile_no as mobile',
+                'employees.nic',
                 'leave_types.name as leave_type_name',
                 'statuses.status'
             )
@@ -94,10 +134,16 @@ class DeanController extends Controller
             'dean_remarks' => 'required_if:dean_recommend,0',
         ]);
 
+        // Get faculty IDs for this Dean
+        $facultyIds = $this->getDeanFaculties();
+
         $application = DB::table('leave_details')
-            ->where('id', $id)
-            ->where('form_status', 2)
-            ->where('status_id', 6)
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->where('leave_details.id', $id)
+            ->where('leave_details.form_status', 2)
+            ->where('leave_details.status_id', 6)
+            ->whereIn('employees.faculty_id', $facultyIds) // Filter by Dean's faculties
+            ->select('leave_details.*')
             ->first();
 
         if (!$application) {
@@ -114,6 +160,7 @@ class DeanController extends Controller
                 'dean_reviewed_at' => now(),
                 'dean_name' => 'Dr. S. Perera',
                 'dean_designation' => 'Dean FAS',
+                'dean_empno' => self::DEAN_EMP_NO, // Record which Dean processed this
                 'status_id' => 7, // Processing VC
                 'updated_at' => now(),
             ]);

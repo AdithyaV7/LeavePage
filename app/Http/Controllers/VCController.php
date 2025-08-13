@@ -8,11 +8,16 @@ use Carbon\Carbon;
 
 class VCController extends Controller
 {
+    // Hardcoded VC employee number - change this to switch to a different VC
+    private const VC_EMP_NO = 1001; // Example VC emp_no
+
     public function index()
     {
         // Get all applications for VC review (status_id = 7)
         $applications = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
@@ -21,9 +26,9 @@ class VCController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'personal_details.name_with_initials',
-                'personal_details.department',
-                'personal_details.faculty',
+                'employees.initials as name_with_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
                 'leave_types.name as leave_type',
                 'statuses.status'
@@ -36,7 +41,10 @@ class VCController extends Controller
     public function show($id)
     {
         $application = DB::table('leave_details')
-            ->join('personal_details', 'leave_details.nic', '=', 'personal_details.nic')
+            ->join('employees', 'leave_details.nic', '=', 'employees.nic')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
             ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
@@ -44,14 +52,14 @@ class VCController extends Controller
             ->where('leave_details.status_id', 7)
             ->select(
                 'leave_details.*',
-                'personal_details.empno',
-                'personal_details.name_with_initials',
-                'personal_details.names_denoted_by_initials',
-                'personal_details.department',
-                'personal_details.faculty',
-                'personal_details.designation',
-                'personal_details.mobile',
-                'personal_details.nic',
+                'employees.employee_no as empno',
+                'employees.initials as name_with_initials',
+                'employees.name_denoted_by_initials as names_denoted_by_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
+                'designations.designation_name as designation',
+                'employees.mobile_no as mobile',
+                'employees.nic',
                 'leave_types.name as leave_type_name',
                 'statuses.status'
             )
@@ -122,6 +130,7 @@ class VCController extends Controller
                 'vc_name' => 'Dr. A. Silva',
                 'vc_reviewed_at' => Carbon::now(),
                 'vc_checked' => true,
+                'vc_empno' => self::VC_EMP_NO, // Record which VC processed this
                 'status_id' => 8, // Forwarded to MA dashboard (implement as needed)
                 'updated_at' => Carbon::now(),
             ]);

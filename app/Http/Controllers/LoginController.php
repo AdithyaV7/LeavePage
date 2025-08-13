@@ -31,9 +31,9 @@ class LoginController extends Controller
     // URL-based login by employee ID
     public function loginById($id)
     {
-        $user = DB::table('users')->where('empno', $id)->first();
+        $user = DB::table('employees')->where('employee_no', $id)->first();
         if ($user) {
-            session(['empno' => $user->empno]);
+            session(['empno' => $user->employee_no]);
             return redirect()->route('leaves.index');
         }
         return redirect()->route('login')->withErrors(['login' => 'User not found']);
