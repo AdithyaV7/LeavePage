@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class HODController extends Controller
 {
     // Hardcoded HOD employee number - change this to switch to a different HOD
-    private const HOD_EMP_NO = 5305; // HOD for department 114 (has leave applications)
+    private const HOD_EMP_NO = 5178; // HOD for department 114 (has leave applications)
 
     /**
      * Get department IDs for the current HOD
@@ -53,7 +53,7 @@ class HODController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
@@ -84,7 +84,7 @@ class HODController extends Controller
             ->select(
                 'leave_details.*',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'employees.name_denoted_by_initials as names_denoted_by_initials',
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',

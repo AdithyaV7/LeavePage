@@ -32,6 +32,13 @@ class LeaveController extends Controller
             ->orderByDesc('updated_at')
             ->get();
 
+        // Check if user has an active draft (form_status = 1, status_id = 3)
+        $hasActiveDraft = DB::table('leave_details')
+            ->where('nic', $user->nic)
+            ->where('form_status', 1)
+            ->where('status_id', 3)
+            ->exists();
+
         // 3. Get previous leaves (form_status = 2 = submitted, 3 = returned)
         // Note: In the future, you could join with form_statuses table to get readable status names
         // Example: ->join('form_statuses', 'leave_details.form_status', '=', 'form_statuses.form_stat_id')
@@ -53,7 +60,7 @@ class LeaveController extends Controller
             )
             ->get();
 
-        return view('leaves.index', compact('user', 'drafts', 'previousLeaves'));
+        return view('leaves.index', compact('user', 'drafts', 'previousLeaves', 'hasActiveDraft'));
     }
 
     public function destroy($id)
@@ -85,7 +92,7 @@ class LeaveController extends Controller
             ->select(
                 'employees.employee_no as empno',
                 'employees.nic',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'employees.name_denoted_by_initials as names_denoted_by_initials',
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
@@ -367,6 +374,19 @@ class LeaveController extends Controller
     {
         $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) abort(404, 'User not found');
+
+        // Check if user already has an active draft (form_status = 1, status_id = 3)
+        $existingDraft = DB::table('leave_details')
+            ->where('nic', $user->nic)
+            ->where('form_status', 1)
+            ->where('status_id', 3)
+            ->first();
+
+        if ($existingDraft) {
+            // Redirect to the existing draft instead of creating a new one
+            return redirect()->route('leaves.create', ['id' => $existingDraft->id])
+                ->with('info', 'You already have an active draft. Please complete or delete it before starting a new application.');
+        }
 
         // Create a new draft leave record
         $draft = DB::table('leave_details')->insertGetId([

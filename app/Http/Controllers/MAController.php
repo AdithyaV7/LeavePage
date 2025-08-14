@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class MAController extends Controller
 {
     // Hardcoded MA user ID - change this to switch to a different MA
-    private const MA_USER_ID = 12466; //15097 for testing 
+    private const MA_USER_ID = 10390; //15097 for testing 
 
     public function index()
     {
@@ -31,7 +31,7 @@ class MAController extends Controller
                 'leave_details.id',
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
@@ -61,7 +61,7 @@ class MAController extends Controller
             ->select(
                 'leave_details.*',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'employees.name_denoted_by_initials as names_denoted_by_initials',
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
@@ -212,12 +212,17 @@ class MAController extends Controller
         return redirect()->route('ma.index')->with('success', 'Application returned to user successfully.');
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $maUserId = self::MA_USER_ID;
 
-        // Get all applications that are being processed by MA and assigned to this MA
-        $applications = DB::table('leave_details')
+        // Get search and sort parameters
+        $search = $request->get('search');
+        $sortBy = $request->get('sort_by', 'applied_date'); // default sort by applied_date
+        $sortOrder = $request->get('sort_order', 'desc'); // default descending
+
+        // Build the query
+        $query = DB::table('leave_details')
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
@@ -225,13 +230,45 @@ class MAController extends Controller
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->whereIn('leave_details.form_status', [2, 3]) // Complete/Submitted
             ->whereIn('leave_details.status_id', [1, 2, 4, 5, 6, 7,8])
-            ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
-            ->orderByDesc('leave_details.applied_date')
-            ->select(
+            ->where('employees.assign_ma_user_id', $maUserId); // Filter by assigned MA
+
+        // Apply search filter if provided
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('leave_details.reference_no', 'LIKE', "%{$search}%")
+                  ->orWhere('employees.employee_no', 'LIKE', "%{$search}%")
+                  ->orWhere('employees.initials', 'LIKE', "%{$search}%")
+                  ->orWhere('employees.last_name', 'LIKE', "%{$search}%")
+                  ->orWhere('departments.department_name', 'LIKE', "%{$search}%")
+                  ->orWhere('faculties.faculty_name', 'LIKE', "%{$search}%")
+                  ->orWhere('leave_types.name', 'LIKE', "%{$search}%")
+                  ->orWhere('statuses.status', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Apply sorting
+        $validSortColumns = [
+            'applied_date' => 'leave_details.applied_date',
+            'reference_no' => 'leave_details.reference_no',
+            'empno' => 'employees.employee_no',
+            'name' => 'employees.last_name',
+            'department' => 'departments.department_name',
+            'faculty' => 'faculties.faculty_name',
+            'leave_type' => 'leave_types.name',
+            'status' => 'statuses.status'
+        ];
+
+        if (array_key_exists($sortBy, $validSortColumns)) {
+            $query->orderBy($validSortColumns[$sortBy], $sortOrder === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderByDesc('leave_details.applied_date'); // default fallback
+        }
+
+        $applications = $query->select(
                 'leave_details.id',
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
@@ -253,13 +290,13 @@ class MAController extends Controller
                 'leave_details.id',
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'leave_types.name as leave_type',
                 'leave_details.status_id'
             )
             ->get();
 
-        return view('ma.dashboardDemo', compact('applications', 'statusApplications'));
+        return view('ma.dashboardDemo', compact('applications', 'statusApplications', 'search', 'sortBy', 'sortOrder'));
     }
 
     public function dashboardVcApproved()
@@ -281,7 +318,7 @@ class MAController extends Controller
                 'leave_details.id',
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
@@ -308,7 +345,7 @@ class MAController extends Controller
                 'leave_details.id',
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'leave_types.name as leave_type',
                 'leave_details.status_id'
             )

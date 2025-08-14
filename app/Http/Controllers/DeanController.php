@@ -53,7 +53,7 @@ class DeanController extends Controller
             ->select(
                 'leave_details.id',
                 'leave_details.reference_no',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',
@@ -84,7 +84,7 @@ class DeanController extends Controller
             ->select(
                 'leave_details.*',
                 'employees.employee_no as empno',
-                'employees.initials as name_with_initials',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
                 'employees.name_denoted_by_initials as names_denoted_by_initials',
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
