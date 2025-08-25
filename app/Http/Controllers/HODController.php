@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class HODController extends Controller
 {
     // Hardcoded HOD employee number - change this to switch to a different HOD
-    private const HOD_EMP_NO = 5178; // HOD for department 114 (has leave applications)
+    private const HOD_EMP_NO = 1054; // HOD for department 114 (has leave applications)
 
     /**
      * Get department IDs for the current HOD

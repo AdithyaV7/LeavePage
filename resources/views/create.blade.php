@@ -895,7 +895,7 @@
 <!-- End of need to add leave Details -->
                 
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Upload Leave Request Document <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">Other Leave Request Documents (Optional)</label>
                     <input type="file" id="leave_document_input" class="form-control mb-2" multiple>
                     <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="upload_leave_document_btn">Upload Leave Document(s)</button>
                     <div id="leave_document_tags" class="mb-2">
@@ -1064,14 +1064,7 @@
             isValid = false;
         }
 
-        // Validate Leave Request Document (check if files are uploaded)
-        const leaveDocumentTags = document.getElementById('leave_document_tags');
-        const hasLeaveDocuments = leaveDocumentTags && leaveDocumentTags.children.length > 0;
-        if (!hasLeaveDocuments) {
-            showError('leave_document_error');
-            isValid = false;
-        }
-
+        // Leave Request Document is optional; no validation enforced here
         // Validate Consent Letter (check if files are uploaded)
         const consentLetterTags = document.getElementById('consent_letter_tags');
         const hasConsentLetters = consentLetterTags && consentLetterTags.children.length > 0;

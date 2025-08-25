@@ -168,7 +168,6 @@ class LeaveController extends Controller
                 'confirm' => 'required',
             ]);
             if (!$isUpdate) {
-                $rules['leave_document'] = 'required';
                 $rules['consent_letter'] = 'required';
             }
         }
@@ -211,9 +210,6 @@ class LeaveController extends Controller
                 }
             }
             if (!$isDraft) {
-                if (count($leaveDocPaths) == 0) {
-                    return back()->with('error', 'At least one leave document is required.');
-                }
                 if (count($consentLetterPaths) == 0) {
                     return back()->with('error', 'At least one consent letter is required.');
                 }
@@ -261,9 +257,6 @@ class LeaveController extends Controller
                 }
             }
             if (!$isDraft) {
-                if (count($leaveDocPaths) == 0) {
-                    return back()->with('error', 'At least one leave document is required.');
-                }
                 if (count($consentLetterPaths) == 0) {
                     return back()->with('error', 'At least one consent letter is required.');
                 }
