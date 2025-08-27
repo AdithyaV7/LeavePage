@@ -97,7 +97,9 @@ class LeaveController extends Controller
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'designations.designation_name as designation',
-                'employees.mobile_no as mobile'
+                'employees.mobile_no as mobile',
+                'employees.department_id as department_id',
+                'employees.faculty_id as faculty_id'
             )
             ->first();
 
@@ -228,8 +230,8 @@ class LeaveController extends Controller
                 // Preserve existing remarks instead of setting to null
             ]);
 
-            // Handle travel details
-            $this->saveTravelDetails($request, $leave->reference_no);
+            // Handle travel details posted with the main form
+            $this->savePostedTravelDetails($request, $leave->reference_no);
 
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         } else {
@@ -261,8 +263,9 @@ class LeaveController extends Controller
                     return back()->with('error', 'At least one consent letter is required.');
                 }
             }
+            // Use client-provided reference number if present; otherwise generate server-side
             $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
-            $refNo = 'OL' . $timestamp . 'E' . $user->employee_no;
+            $refNo = $request->reference_no ?: ('OL' . $timestamp . 'E' . $user->employee_no);
             \App\Models\LeaveDetail::create([
                 'empno' => $user->employee_no,
                 'nic' => $user->nic,
@@ -280,8 +283,8 @@ class LeaveController extends Controller
                 'faculty_id' => $user->faculty_id,
             ]);
 
-            // Handle travel details
-            $this->saveTravelDetails($request, $refNo);
+            // Handle travel details posted with the main form
+            $this->savePostedTravelDetails($request, $refNo);
 
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         }
@@ -353,7 +356,7 @@ class LeaveController extends Controller
             return $f !== $request->file;
         });
         // Delete file from storage
-        \Storage::disk('public')->delete($request->file);
+        Storage::disk('public')->delete($request->file);
         $leave->$type = array_values($files);
         $leave->save();
 
@@ -495,7 +498,7 @@ class LeaveController extends Controller
             });
 
             // Delete file from storage
-            \Storage::disk('public')->delete($request->file);
+            Storage::disk('public')->delete($request->file);
 
             $travelDetail->documents = array_values($documents);
             $travelDetail->save();
@@ -509,12 +512,51 @@ class LeaveController extends Controller
         return response()->json(['error' => 'No detail ID provided.'], 400);
     }
 
-    // Helper method to save travel details (now handled via AJAX)
-    private function saveTravelDetails(Request $request, $referenceNo)
+    // Save posted travel details sent with main form (client-held until submit)
+    private function savePostedTravelDetails(Request $request, string $referenceNo): void
     {
-        // Travel details are now saved individually via AJAX
-        // This method is kept for backward compatibility but does nothing
-        // Travel details are saved using the saveTravelDetail() method
+        $travelEntriesJson = $request->input('travel_entries');
+        if (!$travelEntriesJson) {
+            return;
+        }
+
+        $entries = json_decode($travelEntriesJson, true);
+        if (!is_array($entries)) {
+            return;
+        }
+
+        foreach ($entries as $index => $entry) {
+            $detailText = $entry['detail'] ?? null;
+            $country = $entry['country'] ?? null;
+            $fromDate = $entry['from_date'] ?? null;
+            $toDate = $entry['to_date'] ?? null;
+
+            if (!$detailText || !$country || !$fromDate || !$toDate) {
+                continue;
+            }
+
+            $documents = [];
+            $fileField = "travel_documents_{$index}";
+            if ($request->hasFile($fileField)) {
+                foreach ($request->file($fileField) as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads/travel_documents', $filename, 'public');
+                    $documents[] = $path;
+                }
+            }
+
+            \App\Models\LeaveRequestDetail::create([
+                'reference_no' => $referenceNo,
+                'detail' => $detailText,
+                'country' => $country,
+                'travel_from_date' => $fromDate,
+                'travel_to_date' => $toDate,
+                'documents' => $documents,
+            ]);
+        }
     }
 
     // AJAX method to save individual travel detail
@@ -531,23 +573,23 @@ class LeaveController extends Controller
 
             // Handle document uploads
             $uploadedDocuments = [];
-            \Log::info('Checking for uploaded files...'); // Debug log
-            \Log::info('Request has files: ' . ($request->hasFile('documents') ? 'Yes' : 'No')); // Debug log
+            Log::info('Checking for uploaded files...'); // Debug log
+            Log::info('Request has files: ' . ($request->hasFile('documents') ? 'Yes' : 'No')); // Debug log
 
             if ($request->hasFile('documents')) {
-                \Log::info('Number of files: ' . count($request->file('documents'))); // Debug log
+                Log::info('Number of files: ' . count($request->file('documents'))); // Debug log
                 foreach ($request->file('documents') as $file) {
-                    \Log::info('Processing file: ' . $file->getClientOriginalName()); // Debug log
+                    Log::info('Processing file: ' . $file->getClientOriginalName()); // Debug log
                     $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                     $ext = $file->getClientOriginalExtension();
                     $date = now()->format('Ymd_His');
                     $filename = $originalName . '_' . $date . '.' . $ext;
                     $path = $file->storeAs('uploads/travel_documents', $filename, 'public');
                     $uploadedDocuments[] = $path;
-                    \Log::info('File saved to: ' . $path); // Debug log
+                    Log::info('File saved to: ' . $path); // Debug log
                 }
             } else {
-                \Log::info('No files found in request'); // Debug log
+                Log::info('No files found in request'); // Debug log
             }
 
             // Create travel detail record
