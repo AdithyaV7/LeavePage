@@ -34,7 +34,7 @@
         </a>
     </div>
 
-    <form action="{{ route('leaves.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('leaves.store') }}" method="POST" enctype="multipart/form-data" id="leave-form">
         @csrf
 
         @if(isset($leave))
@@ -340,6 +340,10 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <div id="travel_details_error" class="text-danger small d-none mt-2">Please add at least one travel detail with supporting documents.</div>
+                            @error('travel_details')
+                                <div class="text-danger small mt-2">{{ $message }}</div>
+                            @enderror
                         </div>
 
                     </div>
@@ -502,13 +506,14 @@
                                 // Create file display element
                                 const fileItem = document.createElement('div');
                                 fileItem.className = 'uploaded-file-item d-flex align-items-center justify-content-between p-2 border rounded mb-2';
+                                fileItem.setAttribute('data-file-name', file.name);
                                 fileItem.innerHTML = `
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-file-pdf text-danger me-2"></i>
                                         <span class="file-name">${file.name}</span>
                                         <small class="text-muted ms-2">(${(file.size / 1024).toFixed(1)} KB)</small>
                                     </div>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFileFromInput(${index})">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSpecificFile(${index}, '${file.name}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 `;
@@ -518,8 +523,8 @@
                             showNotification(`${files.length} file(s) selected!`, 'success');
                         }
 
-                        // Function to remove file from input
-                        function removeFileFromInput(index) {
+                        // Function to remove file from input (make it globally accessible)
+                        window.removeFileFromInput = function(index) {
                             const fileInput = document.getElementById(`travel_document_${index}`);
                             const tagsContainer = document.getElementById(`travel_document_tags_${index}`);
 
@@ -530,7 +535,36 @@
                                 tagsContainer.innerHTML = '';
                             }
 
-                            showNotification('Files removed', 'success');
+                            showNotification('All files removed', 'success');
+                        }
+
+                        // Function to remove specific file from display (make it globally accessible)
+                        window.removeSpecificFile = function(index, fileName) {
+                            const tagsContainer = document.getElementById(`travel_document_tags_${index}`);
+                            const fileInput = document.getElementById(`travel_document_${index}`);
+
+                            if (tagsContainer && fileInput) {
+                                // Remove the specific file item from display
+                                const fileItems = tagsContainer.querySelectorAll('.uploaded-file-item');
+                                fileItems.forEach(item => {
+                                    if (item.getAttribute('data-file-name') === fileName) {
+                                        item.remove();
+                                    }
+                                });
+
+                                // Create a new FileList without the removed file
+                                const dt = new DataTransfer();
+                                const files = fileInput.files;
+
+                                for (let i = 0; i < files.length; i++) {
+                                    if (files[i].name !== fileName) {
+                                        dt.items.add(files[i]);
+                                    }
+                                }
+
+                                fileInput.files = dt.files;
+                                showNotification(`File "${fileName}" removed`, 'success');
+                            }
                         }
 
 
@@ -584,11 +618,14 @@
                                     return;
                                 }
 
-                                // Get reference number from the form
-                                const referenceNo = document.querySelector('input[name="reference_no"]').value;
+                                // Get reference number from the form, or generate a temporary one for new applications
+                                let referenceNo = document.querySelector('input[name="reference_no"]').value;
                                 if (!referenceNo) {
-                                    showNotification('Please save the form as draft first to get a reference number', 'error');
-                                    return;
+                                    // For new applications, generate a temporary reference number
+                                    const empNo = document.querySelector('input[name="empno"]').value;
+                                    const timestamp = Date.now();
+                                    referenceNo = `TEMP_${empNo}_${timestamp}`;
+                                    document.querySelector('input[name="reference_no"]').value = referenceNo;
                                 }
 
                                 // Create FormData for AJAX request
@@ -599,6 +636,12 @@
                                 formData.append('travel_from_date', fromDate);
                                 formData.append('travel_to_date', toDate);
                                 formData.append('_token', '{{ csrf_token() }}');
+
+                                // Validate that at least one document is uploaded
+                                if (fileInput.files.length === 0) {
+                                    showNotification('Please upload at least one document for this travel detail', 'error');
+                                    return;
+                                }
 
                                 // Add files if any
                                 if (fileInput.files.length > 0) {
@@ -941,7 +984,7 @@
         </div>
 
         <!-- Buttons + Hidden Status Field -->
-        <input type="hidden" name="form_status" id="formStatus" value="4">
+        <input type="hidden" name="form_status" id="formStatus" value="1">
 
         <div class="text-center">
             <button type="button" class="btn btn-maroon px-4" id="submit-btn">
@@ -1080,6 +1123,20 @@
             isValid = false;
         }
 
+        // Validate Travel Details (only for final submission, not draft)
+        if (formStatus === 2) {
+            const travelDetailsTable = document.getElementById('travel-details-tbody');
+            const hasNoTravelDetails = travelDetailsTable &&
+                (travelDetailsTable.children.length === 0 ||
+                 (travelDetailsTable.children.length === 1 &&
+                  travelDetailsTable.children[0].id === 'no-travel-details'));
+
+            if (hasNoTravelDetails) {
+                showError('travel_details_error');
+                isValid = false;
+            }
+        }
+
         // If all validations pass, submit the form
         if (isValid) {
             console.log('Validation passed, submitting form');
@@ -1177,7 +1234,7 @@
     // Add event listener for submit button
     document.getElementById('submit-btn').addEventListener('click', function(e) {
         e.preventDefault();
-        validateAndSubmit(2);
+        validateAndSubmit(2); // 2 = final submission (form_status = 2)
     });
 
     // For draft saving, remove required validation
@@ -1512,6 +1569,98 @@
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 </style>
+
+<script>
+// Client-side form data persistence
+document.addEventListener('DOMContentLoaded', function() {
+    const STORAGE_KEY = 'leave_form_data';
+    const form = document.getElementById('leave-form');
+
+    // Function to save form data to localStorage
+    function saveFormData() {
+        const formData = {
+            leave_type: document.querySelector('select[name="leave_type"]')?.value || '',
+            from_date: document.querySelector('input[name="from_date"]')?.value || '',
+            to_date: document.querySelector('input[name="to_date"]')?.value || '',
+            duration: document.querySelector('input[name="duration"]')?.value || '',
+            timestamp: Date.now()
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+
+    // Function to load form data from localStorage
+    function loadFormData() {
+        try {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                const formData = JSON.parse(savedData);
+
+                // Only restore if data is less than 24 hours old and we're not editing an existing record
+                const isDataFresh = (Date.now() - formData.timestamp) < (24 * 60 * 60 * 1000);
+                const isNewForm = !document.querySelector('input[name="leave_id"]')?.value;
+
+                if (isDataFresh && isNewForm) {
+                    // Restore form fields
+                    if (formData.leave_type) {
+                        const leaveTypeSelect = document.querySelector('select[name="leave_type"]');
+                        if (leaveTypeSelect) leaveTypeSelect.value = formData.leave_type;
+                    }
+
+                    if (formData.from_date) {
+                        const fromDateInput = document.querySelector('input[name="from_date"]');
+                        if (fromDateInput) fromDateInput.value = formData.from_date;
+                    }
+
+                    if (formData.to_date) {
+                        const toDateInput = document.querySelector('input[name="to_date"]');
+                        if (toDateInput) toDateInput.value = formData.to_date;
+                    }
+
+                    if (formData.duration) {
+                        const durationInput = document.querySelector('input[name="duration"]');
+                        if (durationInput) durationInput.value = formData.duration;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error loading form data:', e);
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }
+
+    // Function to clear saved form data
+    function clearFormData() {
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    // Load saved data on page load (only for new forms)
+    loadFormData();
+
+    // Save form data on input changes
+    const formInputs = form.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('change', saveFormData);
+        input.addEventListener('input', saveFormData);
+    });
+
+    // Clear saved data when form is successfully submitted
+    form.addEventListener('submit', function(e) {
+        const formStatus = document.querySelector('input[name="form_status"]')?.value;
+        if (formStatus === '2') { // Only clear on final submission, not draft
+            clearFormData();
+        }
+    });
+
+    // Clear data when user navigates away after successful submission
+    window.addEventListener('beforeunload', function() {
+        // Check if we're on a success page or redirecting after submission
+        if (window.location.href.includes('success') || document.referrer.includes('store')) {
+            clearFormData();
+        }
+    });
+});
+</script>
 
 @endsection
 

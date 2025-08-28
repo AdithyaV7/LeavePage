@@ -17,6 +17,35 @@ use Carbon\Carbon;
 
 class LeaveController extends Controller
 {
+    /**
+     * Generate a new reference number following the pattern: REF<empNo><Current year><04><auto increment>
+     */
+    private function generateReferenceNumber($empNo)
+    {
+        $currentYear = date('Y');
+        $prefix = "REF{$empNo}{$currentYear}04";
+
+        // Get the highest auto increment number for this employee and year
+        $lastRef = DB::table('leave_details')
+            ->where('empno', $empNo)
+            ->where('reference_no', 'LIKE', $prefix . '%')
+            ->orderByDesc('reference_no')
+            ->value('reference_no');
+
+        if ($lastRef) {
+            // Extract the auto increment part and increment it
+            $lastIncrement = (int) substr($lastRef, strlen($prefix));
+            $newIncrement = $lastIncrement + 1;
+        } else {
+            // First application for this employee this year
+            $newIncrement = 1;
+        }
+
+        // Pad with zeros to make it at least 3 digits
+        $incrementPart = str_pad($newIncrement, 3, '0', STR_PAD_LEFT);
+
+        return $prefix . $incrementPart;
+    }
 
     public function index()
     {
@@ -110,18 +139,19 @@ class LeaveController extends Controller
         // Check if we're editing an existing record
         $leave = null;
         $remark = null;
-        
+
         if ($request->has('id')) {
             $leave = \App\Models\LeaveDetail::where('id', $request->id)->where('nic', $user->nic)->first();
             if (!$leave || !in_array($leave->form_status, [1, 3])) {
                 return redirect()->route('leaves.index')->with('error', 'You can only edit Drafts or Returned forms.');
             }
-            
+
             // If it's a returned form, get the remark
             if ($leave->form_status == 3) {
                 $remark = $leave->remark;
             }
         }
+        // Note: For new applications, $leave will be null and the form will work without a database record
 
         // Only fetch previous leaves with status_id = 1 (approved) for the current academic year
         $previousLeaves = DB::table('leave_details')
@@ -173,6 +203,29 @@ class LeaveController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        // Additional validation for final submission (not draft)
+        if (!$isDraft) {
+            // Check if travel details exist for final submission
+            $referenceNo = $request->reference_no;
+            if ($referenceNo) {
+                $travelDetailsCount = \App\Models\LeaveRequestDetail::where('reference_no', $referenceNo)->count();
+                if ($travelDetailsCount === 0) {
+                    return back()->withErrors(['travel_details' => 'At least one travel detail with supporting documents is required for final submission.'])->withInput();
+                }
+
+                // Check if all travel details have at least one document
+                $travelDetailsWithoutDocs = \App\Models\LeaveRequestDetail::where('reference_no', $referenceNo)
+                    ->where(function($query) {
+                        $query->whereNull('documents')
+                              ->orWhereRaw('JSON_LENGTH(documents) = 0');
+                    })->count();
+
+                if ($travelDetailsWithoutDocs > 0) {
+                    return back()->withErrors(['travel_details' => 'All travel details must have at least one supporting document.'])->withInput();
+                }
+            }
+        }
 
         $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return back()->with('error', 'User not found.');
@@ -261,8 +314,8 @@ class LeaveController extends Controller
                     return back()->with('error', 'At least one consent letter is required.');
                 }
             }
-            $timestamp = now()->addHours(5)->addMinutes(30)->format('YmdHis');
-            $refNo = 'OL' . $timestamp . 'E' . $user->employee_no;
+            // Generate new reference number using the new pattern
+            $refNo = $this->generateReferenceNumber($user->employee_no);
             \App\Models\LeaveDetail::create([
                 'empno' => $user->employee_no,
                 'nic' => $user->nic,
@@ -272,8 +325,8 @@ class LeaveController extends Controller
                 'duration' => $request->duration,
                 'leave_document' => $leaveDocPaths,
                 'consent_letter' => $consentLetterPaths,
-                'status_id' => $request->form_status == 1 ? 3 : 4,
-                'form_status' => $request->form_status,
+                'status_id' => $request->form_status == 1 ? 3 : 4, // 3=Editing/Draft, 4=Processing MA
+                'form_status' => $request->form_status, // 1=Draft, 2=Submitted
                 'reference_no' => $refNo,
                 'applied_date' => now()->addHours(5)->addMinutes(30),
                 'department_id' => $user->department_id,
@@ -527,6 +580,8 @@ class LeaveController extends Controller
                 'country' => 'required|string',
                 'travel_from_date' => 'required|date',
                 'travel_to_date' => 'required|date',
+                'documents' => 'required|array|min:1',
+                'documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
             ]);
 
             // Handle document uploads

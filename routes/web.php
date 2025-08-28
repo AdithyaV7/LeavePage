@@ -68,6 +68,7 @@ Route::middleware('checklogin')->group(function () {
     Route::post('/leave/test-upload', [LeaveController::class, 'testUpload'])->name('leaves.testUpload');
 
     Route::get('/leave/draft/create', [LeaveController::class, 'createDraft'])->name('leaves.draft.create');
+    Route::get('/leave/new', [LeaveController::class, 'create'])->name('leaves.new'); // New application without database record
 });
 
 Route::get('/dashboard', [MAController::class, 'dashboard'])->name('ma.dashboard');
