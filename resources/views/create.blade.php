@@ -939,8 +939,17 @@
                 
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Other Leave Request Documents (Optional)</label>
-                    <input type="file" id="leave_document_input" class="form-control mb-2" multiple>
-                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="upload_leave_document_btn">Upload Leave Document(s)</button>
+                    <div class="upload-area border-2 border-dashed border-primary rounded p-3 text-center bg-light mb-2">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                            <h6 class="text-primary">Upload Leave Documents</h6>
+                            <p class="text-muted mb-2">Drag and drop files here or click to browse</p>
+                            <input type="file" id="leave_document_input" class="form-control d-none" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('leave_document_input').click()">
+                                <i class="fas fa-plus me-2"></i>Choose Files
+                            </button>
+                        </div>
+                    </div>
                     <div id="leave_document_tags" class="mb-2">
                         @if(isset($leave) && is_array($leave->leave_document))
                             @foreach($leave->leave_document as $file)
@@ -956,8 +965,17 @@
 
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Upload Consent Letter <span class="text-danger">*</span></label>
-                    <input type="file" id="consent_letter_input" class="form-control mb-2" multiple>
-                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="upload_consent_letter_btn">Upload Consent Letter(s)</button>
+                    <div class="upload-area border-2 border-dashed border-primary rounded p-3 text-center bg-light mb-2">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                            <h6 class="text-primary">Upload Consent Letters</h6>
+                            <p class="text-muted mb-2">Drag and drop files here or click to browse</p>
+                            <input type="file" id="consent_letter_input" class="form-control d-none" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('consent_letter_input').click()">
+                                <i class="fas fa-plus me-2"></i>Choose Files
+                            </button>
+                        </div>
+                    </div>
                     <div id="consent_letter_tags" class="mb-2">
                         @if(isset($leave) && is_array($leave->consent_letter))
                             @foreach($leave->consent_letter as $file)
@@ -970,7 +988,7 @@
                     </div>
                     <div id="consent_letter_required" class="text-danger small d-none">At least one consent letter is required.</div>
                     <small class="form-text">
-                        Download sample: 
+                        Download sample:
                         <a href="{{ asset('sample-consent-letter.pdf') }}" target="_blank" class="text-success fw-semibold">Download the Consent Letter</a>
                     </small>
                 </div>
@@ -1284,12 +1302,56 @@
             });
         }
     }
-    document.getElementById('upload_leave_document_btn').addEventListener('click', function() {
-        uploadFilesAJAX('leave_document_input', 'leave_document', 'leave_document_tags');
+    // Auto-upload when files are selected for leave documents
+    document.getElementById('leave_document_input').addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadFilesAJAX('leave_document_input', 'leave_document', 'leave_document_tags');
+        }
     });
-    document.getElementById('upload_consent_letter_btn').addEventListener('click', function() {
-        uploadFilesAJAX('consent_letter_input', 'consent_letter', 'consent_letter_tags');
+
+    // Auto-upload when files are selected for consent letters
+    document.getElementById('consent_letter_input').addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadFilesAJAX('consent_letter_input', 'consent_letter', 'consent_letter_tags');
+        }
     });
+
+    // Add drag and drop functionality for leave documents and consent letters
+    function setupSpecificDragAndDrop(uploadArea, inputId, type, tagsId) {
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const input = document.getElementById(inputId);
+                input.files = files;
+                uploadFilesAJAX(inputId, type, tagsId);
+            }
+        });
+    }
+
+    // Setup drag and drop for specific upload areas
+    const leaveDocUploadArea = document.querySelector('#leave_document_input').closest('.upload-area');
+    const consentLetterUploadArea = document.querySelector('#consent_letter_input').closest('.upload-area');
+
+    if (leaveDocUploadArea) {
+        setupSpecificDragAndDrop(leaveDocUploadArea, 'leave_document_input', 'leave_document', 'leave_document_tags');
+    }
+
+    if (consentLetterUploadArea) {
+        setupSpecificDragAndDrop(consentLetterUploadArea, 'consent_letter_input', 'consent_letter', 'consent_letter_tags');
+    }
     // Render file tags
     function renderFileTags(tagsId, files, type) {
         const tagsDiv = document.getElementById(tagsId);
@@ -1398,6 +1460,10 @@
 }
 
 .upload-content .btn-upload-trigger {
+    pointer-events: auto;
+}
+
+.upload-content .btn {
     pointer-events: auto;
 }
 
