@@ -136,7 +136,7 @@
                         <option selected disabled value="">Select</option>
                         @foreach ($leaveTypes as $type)
                             <option value="{{ $type->id }}"
-                                {{ (old('leave_type') == $type->id) || (isset($leave) && $leave->leave_type_id == $type->id) ? 'selected' : '' }}>
+                                {{ (isset($leave) && $leave->leave_type_id == $type->id) ? 'selected' : '' }}>
                                 {{ $type->name }}
                             </option>
                         @endforeach
@@ -149,7 +149,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Start Date *</label>
                     <input type="date" name="from_date" class="form-control @error('from_date') is-invalid @enderror" id="fromDate"
-                           value="{{ old('from_date', isset($leave) ? $leave->from_date : '') }}">
+                           value="{{ isset($leave) ? $leave->from_date : '' }}">
                     @error('from_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -158,7 +158,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">End Date *</label>
                     <input type="date" name="to_date" class="form-control @error('to_date') is-invalid @enderror" id="toDate"
-                           value="{{ old('to_date', isset($leave) ? $leave->to_date : '') }}">
+                           value="{{ isset($leave) ? $leave->to_date : '' }}">
                     @error('to_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -167,7 +167,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Duration (Days) *</label>
                     <input type="number" name="duration" class="form-control @error('duration') is-invalid @enderror" id="duration"
-                           value="{{ old('duration', isset($leave) ? $leave->duration : '') }}">
+                           value="{{ isset($leave) ? $leave->duration : '' }}">
                     @error('duration')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -351,49 +351,7 @@
                 <!-- Travel Details JavaScript -->
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        // Restore main form data if preserved in sessionStorage
-                        const preservedData = sessionStorage.getItem('preserveMainFormData');
-                        if (preservedData) {
-                            try {
-                                const formData = JSON.parse(preservedData);
 
-                                // Restore leave type
-                                if (formData.leave_type) {
-                                    const leaveTypeSelect = document.querySelector('select[name="leave_type"]');
-                                    if (leaveTypeSelect) {
-                                        leaveTypeSelect.value = formData.leave_type;
-                                    }
-                                }
-
-                                // Restore dates and duration
-                                if (formData.from_date) {
-                                    const fromDateInput = document.querySelector('input[name="from_date"]');
-                                    if (fromDateInput) {
-                                        fromDateInput.value = formData.from_date;
-                                    }
-                                }
-
-                                if (formData.to_date) {
-                                    const toDateInput = document.querySelector('input[name="to_date"]');
-                                    if (toDateInput) {
-                                        toDateInput.value = formData.to_date;
-                                    }
-                                }
-
-                                if (formData.duration) {
-                                    const durationInput = document.querySelector('input[name="duration"]');
-                                    if (durationInput) {
-                                        durationInput.value = formData.duration;
-                                    }
-                                }
-
-                                // Clear the preserved data after restoring
-                                sessionStorage.removeItem('preserveMainFormData');
-                            } catch (e) {
-                                console.error('Error restoring form data:', e);
-                                sessionStorage.removeItem('preserveMainFormData');
-                            }
-                        }
 
                         let entryIndex = {{ isset($travelDetails) ? count($travelDetails) : 1 }};
                         const countries = @json($countries);
@@ -585,7 +543,7 @@
                             console.log('========================');
                         }
 
-                        // Handle submit travel details
+                        // Handle submit travel details (frontend only)
                         const submitBtn = document.getElementById('submit-travel-details');
                         if (submitBtn) {
                             submitBtn.addEventListener('click', function() {
@@ -597,8 +555,6 @@
                                 const fromDate = document.getElementById('travel_from_datetime_0').value;
                                 const toDate = document.getElementById('travel_to_datetime_0').value;
                                 const fileInput = document.getElementById('travel_document_0');
-                                console.log('File input element in submit:', fileInput); // Debug log
-                                console.log('File input files:', fileInput ? fileInput.files : 'No file input'); // Debug log
 
                                 // Validate required fields
                                 if (!detail) {
@@ -618,97 +574,187 @@
                                     return;
                                 }
 
-                                // Get reference number from the form, or generate a temporary one for new applications
-                                let referenceNo = document.querySelector('input[name="reference_no"]').value;
-                                if (!referenceNo) {
-                                    // For new applications, generate a temporary reference number
-                                    const empNo = document.querySelector('input[name="empno"]').value;
-                                    const timestamp = Date.now();
-                                    referenceNo = `TEMP_${empNo}_${timestamp}`;
-                                    document.querySelector('input[name="reference_no"]').value = referenceNo;
-                                }
-
-                                // Create FormData for AJAX request
-                                const formData = new FormData();
-                                formData.append('reference_no', referenceNo);
-                                formData.append('detail', detail);
-                                formData.append('country', country);
-                                formData.append('travel_from_date', fromDate);
-                                formData.append('travel_to_date', toDate);
-                                formData.append('_token', '{{ csrf_token() }}');
-
                                 // Validate that at least one document is uploaded
                                 if (fileInput.files.length === 0) {
                                     showNotification('Please upload at least one document for this travel detail', 'error');
                                     return;
                                 }
 
-                                // Add files if any
-                                if (fileInput.files.length > 0) {
-                                    console.log('Adding files to FormData:', fileInput.files.length); // Debug log
-                                    for (let i = 0; i < fileInput.files.length; i++) {
-                                        console.log('Adding file:', fileInput.files[i].name); // Debug log
-                                        formData.append('documents[]', fileInput.files[i]);
-                                    }
-                                } else {
-                                    console.log('No files selected'); // Debug log
-                                }
-
                                 // Show loading state
                                 submitBtn.disabled = true;
-                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
 
-                                // Send AJAX request
-                                fetch('{{ route("leaves.saveTravelDetail") }}', {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        // Store main form values before reload
-                                        const mainFormData = {
-                                            leave_type: document.querySelector('select[name="leave_type"]').value,
-                                            from_date: document.querySelector('input[name="from_date"]').value,
-                                            to_date: document.querySelector('input[name="to_date"]').value,
-                                            duration: document.querySelector('input[name="duration"]').value
-                                        };
-                                        sessionStorage.setItem('preserveMainFormData', JSON.stringify(mainFormData));
-
-                                        // Clear the travel form
-                                        clearTravelForm();
-
-                                        // Reload the page to refresh the table
-                                        location.reload();
-
-                                        showNotification('Travel details saved successfully!', 'success');
-                                    } else {
-                                        showNotification(data.message || 'Error saving travel details', 'error');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error:', error);
-                                    showNotification('Error saving travel details', 'error');
-                                })
-                                .finally(() => {
-                                    // Restore button state
-                                    submitBtn.disabled = false;
-                                    submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Travel Details';
-                                });
+                                // Upload files first, then create travel detail
+                                uploadTravelDocumentsAndCreateDetail(detail, country, fromDate, toDate, fileInput.files, submitBtn);
                             });
                         } else {
                             console.error('Submit travel details button not found');
                         }
 
+                        // Function to upload travel documents and create travel detail
+                        async function uploadTravelDocumentsAndCreateDetail(detail, country, fromDate, toDate, files, submitBtn) {
+                            try {
+                                const uploadedDocuments = [];
+
+                                // Upload each file
+                                for (let i = 0; i < files.length; i++) {
+                                    const formData = new FormData();
+                                    formData.append('file', files[i]);
+                                    formData.append('type', 'travel_document');
+                                    formData.append('_token', '{{ csrf_token() }}');
+
+                                    const response = await fetch("{{ route('leaves.uploadTempFile') }}", {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (data.success) {
+                                        uploadedDocuments.push(data.file_path);
+                                    } else {
+                                        throw new Error(data.error || 'Upload failed');
+                                    }
+                                }
+
+                                // Create travel detail object with uploaded file paths
+                                const travelDetail = {
+                                    id: Date.now(), // Use timestamp as temporary ID
+                                    detail: detail,
+                                    country: country,
+                                    travel_from_date: fromDate,
+                                    travel_to_date: toDate,
+                                    documents: uploadedDocuments
+                                };
+
+                                // Add to temporary storage
+                                tempTravelDetails.push(travelDetail);
+
+                                // Update hidden input for form submission
+                                updateHiddenInput('temp_travel_details', tempTravelDetails);
+
+                                // Update the travel details table
+                                updateTravelDetailsTable();
+
+                                // Clear the travel form
+                                clearTravelForm();
+
+                                showNotification('Travel details added successfully!', 'success');
+
+                            } catch (error) {
+                                console.error('Error uploading travel documents:', error);
+                                showNotification('Error uploading documents: ' + error.message, 'error');
+                            } finally {
+                                // Restore button state
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Travel Details';
+                            }
+                        }
+
+                        // Function to update travel details table in frontend
+                        function updateTravelDetailsTable() {
+                            const tbody = document.getElementById('travel-details-tbody');
+                            if (!tbody) return;
+
+                            // Clear existing rows except the "no details" row
+                            tbody.innerHTML = '';
+
+                            if (tempTravelDetails.length === 0) {
+                                tbody.innerHTML = '<tr id="no-travel-details"><td colspan="6" class="text-center text-muted">No travel details added yet</td></tr>';
+                                return;
+                            }
+
+                            // Add rows for each travel detail
+                            tempTravelDetails.forEach(detail => {
+                                const row = document.createElement('tr');
+                                row.setAttribute('data-temp-id', detail.id);
+
+                                // Handle documents - they are now file paths, not file objects
+                                const documentsHtml = detail.documents.map(docPath => {
+                                    const fileName = docPath.split('/').pop(); // Get filename from path
+                                    return `<a href="{{ asset('storage/') }}/${docPath}" target="_blank" class="badge bg-primary text-decoration-none me-1 mb-1">${fileName}</a>`;
+                                }).join('');
+
+                                row.innerHTML = `
+                                    <td>${detail.detail}</td>
+                                    <td>${formatDate(detail.travel_from_date)}</td>
+                                    <td>${formatDate(detail.travel_to_date)}</td>
+                                    <td>${detail.country}</td>
+                                    <td>${documentsHtml || '<span class="text-muted">No documents</span>'}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm delete-temp-travel-btn" data-temp-id="${detail.id}">
+                                            <i class="fas fa-trash"></i> Remove
+                                        </button>
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+
+                        // Function to format date for display
+                        function formatDate(dateString) {
+                            const date = new Date(dateString);
+                            return date.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                        }
+
                         // Handle delete button clicks using event delegation
                         document.addEventListener('click', function(e) {
+                            // Handle database travel detail deletion
                             if (e.target.classList.contains('delete-travel-btn') || e.target.closest('.delete-travel-btn')) {
                                 const button = e.target.classList.contains('delete-travel-btn') ? e.target : e.target.closest('.delete-travel-btn');
                                 const id = button.getAttribute('data-id');
                                 console.log('Delete button clicked via event delegation for ID:', id); // Debug log
                                 deleteTravelDetail(id);
                             }
+
+                            // Handle temporary travel detail deletion
+                            if (e.target.classList.contains('delete-temp-travel-btn') || e.target.closest('.delete-temp-travel-btn')) {
+                                const button = e.target.classList.contains('delete-temp-travel-btn') ? e.target : e.target.closest('.delete-temp-travel-btn');
+                                const tempId = button.getAttribute('data-temp-id');
+                                console.log('Delete temp travel detail clicked for ID:', tempId); // Debug log
+                                deleteTempTravelDetail(tempId);
+                            }
                         });
+
+                        // Function to delete temporary travel detail
+                        function deleteTempTravelDetail(tempId) {
+                            if (confirm('Are you sure you want to remove this travel detail?')) {
+                                // Find the travel detail to get its documents
+                                const travelDetail = tempTravelDetails.find(detail => detail.id == tempId);
+
+                                if (travelDetail && travelDetail.documents) {
+                                    // Delete uploaded files
+                                    travelDetail.documents.forEach(filePath => {
+                                        const formData = new FormData();
+                                        formData.append('type', 'travel_document');
+                                        formData.append('file_path', filePath);
+                                        formData.append('_token', '{{ csrf_token() }}');
+
+                                        fetch("{{ route('leaves.deleteTempFile') }}", {
+                                            method: 'POST',
+                                            body: formData
+                                        }).catch(error => {
+                                            console.error('Error deleting file:', error);
+                                        });
+                                    });
+                                }
+
+                                // Remove from temporary storage
+                                tempTravelDetails = tempTravelDetails.filter(detail => detail.id != tempId);
+
+                                // Update hidden input for form submission
+                                updateHiddenInput('temp_travel_details', tempTravelDetails);
+
+                                // Update the table
+                                updateTravelDetailsTable();
+
+                                showNotification('Travel detail removed successfully', 'success');
+                            }
+                        }
 
                         // Function to clear travel form
                         function clearTravelForm() {
@@ -960,6 +1006,8 @@
                             @endforeach
                         @endif
                     </div>
+                    <!-- Hidden input to track temporary files -->
+                    <input type="hidden" name="temp_leave_documents" id="temp_leave_documents" value="[]">
                     <div id="leave_document_error" class="text-danger small d-none">Please upload at least one leave request document.</div>
                 </div>
 
@@ -986,6 +1034,11 @@
                             @endforeach
                         @endif
                     </div>
+                    <!-- Hidden input to track temporary files -->
+                    <input type="hidden" name="temp_consent_letters" id="temp_consent_letters" value="[]">
+
+                    <!-- Hidden input to track temporary travel details -->
+                    <input type="hidden" name="temp_travel_details" id="temp_travel_details" value="[]">
                     <div id="consent_letter_required" class="text-danger small d-none">At least one consent letter is required.</div>
                     <small class="form-text">
                         Download sample:
@@ -1126,9 +1179,10 @@
         }
 
         // Leave Request Document is optional; no validation enforced here
-        // Validate Consent Letter (check if files are uploaded)
+        // Validate Consent Letter (check if files are uploaded or temporary files exist)
         const consentLetterTags = document.getElementById('consent_letter_tags');
-        const hasConsentLetters = consentLetterTags && consentLetterTags.children.length > 0;
+        const hasConsentLetters = (consentLetterTags && consentLetterTags.children.length > 0) ||
+                                 (typeof tempConsentFiles !== 'undefined' && tempConsentFiles.length > 0);
         if (!hasConsentLetters) {
             showError('consent_letter_required');
             isValid = false;
@@ -1149,7 +1203,10 @@
                  (travelDetailsTable.children.length === 1 &&
                   travelDetailsTable.children[0].id === 'no-travel-details'));
 
-            if (hasNoTravelDetails) {
+            // Also check temporary travel details
+            const hasTempTravelDetails = typeof tempTravelDetails !== 'undefined' && tempTravelDetails.length > 0;
+
+            if (hasNoTravelDetails && !hasTempTravelDetails) {
                 showError('travel_details_error');
                 isValid = false;
             }
@@ -1266,14 +1323,19 @@
     });
 
     let leaveId = {{ isset($leave) ? $leave->id : 'null' }};
-    // AJAX upload for Save Draft
+
+    // AJAX upload for temporary files (no draft required)
     function uploadFilesAJAX(inputId, type, tagsId) {
         const input = document.getElementById(inputId);
         const files = input.files;
+
+        // Use temporary upload if no leaveId exists
         if (!leaveId) {
-            alert('Please save the form as draft at least once before uploading files.');
+            uploadTempFiles(inputId, type, tagsId);
             return;
         }
+
+        // Use existing draft upload if leaveId exists
         for (let i = 0; i < files.length; i++) {
             const formData = new FormData();
             formData.append('file', files[i]);
@@ -1302,6 +1364,64 @@
             });
         }
     }
+
+    // In-memory storage for temporary files and travel details
+    let tempLeaveFiles = [];
+    let tempConsentFiles = [];
+    let tempTravelDetails = [];
+
+    // Upload temporary files (for new applications)
+    function uploadTempFiles(inputId, type, tagsId) {
+        const input = document.getElementById(inputId);
+        const files = input.files;
+
+        for (let i = 0; i < files.length; i++) {
+            const formData = new FormData();
+            formData.append('file', files[i]);
+            formData.append('type', type);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            fetch("{{ route('leaves.uploadTempFile') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Store in memory
+                    if (type === 'leave_document') {
+                        tempLeaveFiles.push(data.file_path);
+                        updateHiddenInput('temp_leave_documents', tempLeaveFiles);
+                    } else if (type === 'consent_letter') {
+                        tempConsentFiles.push(data.file_path);
+                        updateHiddenInput('temp_consent_letters', tempConsentFiles);
+                    }
+
+                    addTempFileTag(tagsId, data.file_path, data.file_name, type);
+
+                    // Hide error messages when files are uploaded
+                    if (type === 'leave_document') {
+                        document.getElementById('leave_document_error').classList.add('d-none');
+                    } else if (type === 'consent_letter') {
+                        document.getElementById('consent_letter_required').classList.add('d-none');
+                    }
+                } else {
+                    alert(data.error || 'Upload failed');
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                alert('Upload failed');
+            });
+        }
+
+        input.value = ''; // Clear the input
+    }
+
+    // Update hidden input with file paths
+    function updateHiddenInput(inputId, fileArray) {
+        document.getElementById(inputId).value = JSON.stringify(fileArray);
+    }
     // Auto-upload when files are selected for leave documents
     document.getElementById('leave_document_input').addEventListener('change', function() {
         if (this.files.length > 0) {
@@ -1313,6 +1433,58 @@
     document.getElementById('consent_letter_input').addEventListener('change', function() {
         if (this.files.length > 0) {
             uploadFilesAJAX('consent_letter_input', 'consent_letter', 'consent_letter_tags');
+        }
+    });
+
+    // Function to add temporary file tag
+    function addTempFileTag(tagsId, filePath, fileName, type) {
+        const tagsDiv = document.getElementById(tagsId);
+        const span = document.createElement('span');
+        span.className = 'badge bg-secondary me-1';
+        span.innerHTML = `
+            <span class="text-white">${fileName}</span>
+            <button type="button" class="btn-close btn-close-white btn-sm ms-1 delete-temp-file-btn"
+                    data-type="${type}" data-file-path="${filePath}" aria-label="Delete"></button>
+        `;
+        tagsDiv.appendChild(span);
+    }
+
+    // Handle temporary file deletion
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-temp-file-btn')) {
+            const type = e.target.getAttribute('data-type');
+            const filePath = e.target.getAttribute('data-file-path');
+
+            const formData = new FormData();
+            formData.append('type', type);
+            formData.append('file_path', filePath);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            fetch("{{ route('leaves.deleteTempFile') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from in-memory arrays
+                    if (type === 'leave_document') {
+                        tempLeaveFiles = tempLeaveFiles.filter(file => file !== filePath);
+                        updateHiddenInput('temp_leave_documents', tempLeaveFiles);
+                    } else if (type === 'consent_letter') {
+                        tempConsentFiles = tempConsentFiles.filter(file => file !== filePath);
+                        updateHiddenInput('temp_consent_letters', tempConsentFiles);
+                    }
+
+                    e.target.closest('.badge').remove();
+                } else {
+                    alert(data.error || 'Delete failed');
+                }
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                alert('Delete failed');
+            });
         }
     });
 
@@ -1637,95 +1809,7 @@
 </style>
 
 <script>
-// Client-side form data persistence
-document.addEventListener('DOMContentLoaded', function() {
-    const STORAGE_KEY = 'leave_form_data';
-    const form = document.getElementById('leave-form');
-
-    // Function to save form data to localStorage
-    function saveFormData() {
-        const formData = {
-            leave_type: document.querySelector('select[name="leave_type"]')?.value || '',
-            from_date: document.querySelector('input[name="from_date"]')?.value || '',
-            to_date: document.querySelector('input[name="to_date"]')?.value || '',
-            duration: document.querySelector('input[name="duration"]')?.value || '',
-            timestamp: Date.now()
-        };
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-    }
-
-    // Function to load form data from localStorage
-    function loadFormData() {
-        try {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                const formData = JSON.parse(savedData);
-
-                // Only restore if data is less than 24 hours old and we're not editing an existing record
-                const isDataFresh = (Date.now() - formData.timestamp) < (24 * 60 * 60 * 1000);
-                const isNewForm = !document.querySelector('input[name="leave_id"]')?.value;
-
-                if (isDataFresh && isNewForm) {
-                    // Restore form fields
-                    if (formData.leave_type) {
-                        const leaveTypeSelect = document.querySelector('select[name="leave_type"]');
-                        if (leaveTypeSelect) leaveTypeSelect.value = formData.leave_type;
-                    }
-
-                    if (formData.from_date) {
-                        const fromDateInput = document.querySelector('input[name="from_date"]');
-                        if (fromDateInput) fromDateInput.value = formData.from_date;
-                    }
-
-                    if (formData.to_date) {
-                        const toDateInput = document.querySelector('input[name="to_date"]');
-                        if (toDateInput) toDateInput.value = formData.to_date;
-                    }
-
-                    if (formData.duration) {
-                        const durationInput = document.querySelector('input[name="duration"]');
-                        if (durationInput) durationInput.value = formData.duration;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('Error loading form data:', e);
-            localStorage.removeItem(STORAGE_KEY);
-        }
-    }
-
-    // Function to clear saved form data
-    function clearFormData() {
-        localStorage.removeItem(STORAGE_KEY);
-    }
-
-    // Load saved data on page load (only for new forms)
-    loadFormData();
-
-    // Save form data on input changes
-    const formInputs = form.querySelectorAll('input, select, textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('change', saveFormData);
-        input.addEventListener('input', saveFormData);
-    });
-
-    // Clear saved data when form is successfully submitted
-    form.addEventListener('submit', function(e) {
-        const formStatus = document.querySelector('input[name="form_status"]')?.value;
-        if (formStatus === '2') { // Only clear on final submission, not draft
-            clearFormData();
-        }
-    });
-
-    // Clear data when user navigates away after successful submission
-    window.addEventListener('beforeunload', function() {
-        // Check if we're on a success page or redirecting after submission
-        if (window.location.href.includes('success') || document.referrer.includes('store')) {
-            clearFormData();
-        }
-    });
-});
+// No form data persistence - clean slate on every refresh
 </script>
 
 @endsection

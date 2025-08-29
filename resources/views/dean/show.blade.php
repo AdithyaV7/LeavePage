@@ -23,24 +23,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-    <!-- Application Status -->
-    <div class="card mb-4">
-        <div class="card-header bg-warning text-dark fw-semibold">
-            <i class="fas fa-clock me-2"></i>Application Status
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Status:</strong> 
-                    <span class="badge bg-warning">{{ $application->status }}</span>
-                </div>
-                <div class="col-md-6">
-                    <strong>Applied Date:</strong> 
-                    {{ \Carbon\Carbon::parse($application->applied_date)->format('F d, Y') }}
-                </div>
-            </div>
-        </div>
-    </div>
+
     <!-- Personal Details -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white fw-semibold">
@@ -216,40 +199,6 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Leave Request Documents</label>
-                    @if(!empty($application->leave_documents) && count($application->leave_documents))
-                        @foreach($application->leave_documents as $doc)
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-file-pdf text-danger me-2"></i>
-                                        <span class="text-muted">{{ basename($doc) }}</span>
-                                    </div>
-                                    <div class="document-actions">
-                                        <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
-                                            <i class="fas fa-external-link-alt me-1"></i>Open
-                                        </a>
-                                        <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" download="{{ basename($doc) }}" class="btn btn-outline-secondary btn-sm">
-                                            <i class="fas fa-download me-1"></i>Download
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="pdf-frame-container">
-                                    <iframe src="{{ asset('storage/' . ltrim($doc, '/')) }}"
-                                            class="pdf-frame"
-                                            frameborder="0">
-                                        <p>Your browser does not support PDFs.
-                                           <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank">Download the PDF</a>.
-                                        </p>
-                                    </iframe>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <span class="text-muted">No document uploaded</span>
-                    @endif
-                </div>
-                <div class="col-md-6">
                     <label class="form-label fw-semibold">Consent Letters</label>
                     @if(!empty($application->consent_letters) && count($application->consent_letters))
                         @foreach($application->consent_letters as $letter)
@@ -283,6 +232,38 @@
                         <span class="text-muted">No document uploaded</span>
                     @endif
                 </div>
+                @if(!empty($application->leave_documents) && count($application->leave_documents))
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Leave Request Documents</label>
+                    @foreach($application->leave_documents as $doc)
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <span class="text-muted">{{ basename($doc) }}</span>
+                                </div>
+                                <div class="document-actions">
+                                    <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                        <i class="fas fa-external-link-alt me-1"></i>Open
+                                    </a>
+                                    <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" download="{{ basename($doc) }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="pdf-frame-container">
+                                <iframe src="{{ asset('storage/' . ltrim($doc, '/')) }}"
+                                        class="pdf-frame"
+                                        frameborder="0">
+                                    <p>Your browser does not support PDFs.
+                                       <a href="{{ asset('storage/' . ltrim($doc, '/')) }}" target="_blank">Download the PDF</a>.
+                                    </p>
+                                </iframe>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                @endif
             </div>
         </div>
     </div>

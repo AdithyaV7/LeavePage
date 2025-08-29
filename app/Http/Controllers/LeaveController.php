@@ -288,6 +288,8 @@ class LeaveController extends Controller
         } else {
             // Handle multiple file uploads for new applications
             $leaveDocPaths = [];
+
+            // Handle direct file uploads
             if ($request->hasFile('leave_document')) {
                 foreach ($request->file('leave_document') as $file) {
                     $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -298,7 +300,26 @@ class LeaveController extends Controller
                     $leaveDocPaths[] = $path;
                 }
             }
+
+            // Handle temporary file paths from hidden inputs
+            if ($request->has('temp_leave_documents')) {
+                $tempPaths = json_decode($request->temp_leave_documents, true);
+                if (is_array($tempPaths)) {
+                    foreach ($tempPaths as $tempPath) {
+                        if (Storage::disk('public')->exists($tempPath)) {
+                            // Move from temp to permanent location
+                            $filename = basename($tempPath);
+                            $newPath = 'uploads/' . $filename;
+                            Storage::disk('public')->move($tempPath, $newPath);
+                            $leaveDocPaths[] = $newPath;
+                        }
+                    }
+                }
+            }
+
             $consentLetterPaths = [];
+
+            // Handle direct file uploads
             if ($request->hasFile('consent_letter')) {
                 foreach ($request->file('consent_letter') as $file) {
                     $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -307,6 +328,22 @@ class LeaveController extends Controller
                     $filename = $originalName . '_' . $date . '.' . $ext;
                     $path = $file->storeAs('uploads', $filename, 'public');
                     $consentLetterPaths[] = $path;
+                }
+            }
+
+            // Handle temporary file paths from hidden inputs
+            if ($request->has('temp_consent_letters')) {
+                $tempPaths = json_decode($request->temp_consent_letters, true);
+                if (is_array($tempPaths)) {
+                    foreach ($tempPaths as $tempPath) {
+                        if (Storage::disk('public')->exists($tempPath)) {
+                            // Move from temp to permanent location
+                            $filename = basename($tempPath);
+                            $newPath = 'uploads/' . $filename;
+                            Storage::disk('public')->move($tempPath, $newPath);
+                            $consentLetterPaths[] = $newPath;
+                        }
+                    }
                 }
             }
             if (!$isDraft) {
@@ -562,12 +599,47 @@ class LeaveController extends Controller
         return response()->json(['error' => 'No detail ID provided.'], 400);
     }
 
-    // Helper method to save travel details (now handled via AJAX)
+    // Helper method to save travel details from form submission
     private function saveTravelDetails(Request $request, $referenceNo)
     {
-        // Travel details are now saved individually via AJAX
-        // This method is kept for backward compatibility but does nothing
-        // Travel details are saved using the saveTravelDetail() method
+        // Handle temporary travel details from frontend
+        if ($request->has('temp_travel_details')) {
+            $tempTravelDetails = json_decode($request->temp_travel_details, true);
+
+            if (is_array($tempTravelDetails)) {
+                foreach ($tempTravelDetails as $detail) {
+                    $finalDocuments = [];
+
+                    // Handle document paths - move from temp to permanent location
+                    if (isset($detail['documents']) && is_array($detail['documents'])) {
+                        foreach ($detail['documents'] as $tempPath) {
+                            if (Storage::disk('public')->exists($tempPath)) {
+                                // Move from temp to permanent location
+                                $filename = basename($tempPath);
+                                $newPath = 'uploads/travel_documents/' . $filename;
+
+                                // Ensure the directory exists
+                                Storage::disk('public')->makeDirectory('uploads/travel_documents');
+
+                                // Move the file
+                                Storage::disk('public')->move($tempPath, $newPath);
+                                $finalDocuments[] = $newPath;
+                            }
+                        }
+                    }
+
+                    // Save travel detail to database
+                    LeaveRequestDetail::create([
+                        'reference_no' => $referenceNo,
+                        'detail' => $detail['detail'],
+                        'country' => $detail['country'],
+                        'travel_from_date' => $detail['travel_from_date'],
+                        'travel_to_date' => $detail['travel_to_date'],
+                        'documents' => $finalDocuments,
+                    ]);
+                }
+            }
+        }
     }
 
     // AJAX method to save individual travel detail
@@ -669,6 +741,55 @@ class LeaveController extends Controller
                 'message' => 'Error deleting travel detail: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // AJAX: Upload temporary file for leave_document, consent_letter, or travel_document (without requiring leave_id)
+    public function uploadTempFile(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:leave_document,consent_letter,travel_document',
+            'file' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+        ]);
+
+        $user = DB::table('employees')->where('employee_no', session('empno'))->first();
+        if (!$user) return response()->json(['error' => 'User not found.'], 403);
+
+        // Upload the file to temporary storage (no session storage)
+        $file = $request->file('file');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $ext = $file->getClientOriginalExtension();
+        $date = now()->format('Ymd_His');
+        $filename = $originalName . '_' . $date . '.' . $ext;
+
+        // Use different temp directories based on file type
+        $tempDir = $request->type === 'travel_document' ? 'uploads/temp/travel_documents' : 'uploads/temp';
+        $path = $file->storeAs($tempDir, $filename, 'public');
+
+        return response()->json([
+            'success' => true,
+            'file_path' => $path,
+            'file_name' => basename($path),
+            'message' => 'File uploaded successfully'
+        ]);
+    }
+
+    // AJAX: Delete temporary file
+    public function deleteTempFile(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:leave_document,consent_letter,travel_document',
+            'file_path' => 'required|string',
+        ]);
+
+        // Delete physical file only (no session management)
+        if (Storage::disk('public')->exists($request->file_path)) {
+            Storage::disk('public')->delete($request->file_path);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'File deleted successfully'
+        ]);
     }
 
     // Test method for debugging file uploads

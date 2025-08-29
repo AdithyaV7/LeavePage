@@ -110,16 +110,16 @@ class MAController extends Controller
                 $readonly = false;
                 break;
             case 5: // Processing HOD
-                $view = 'hod.show';
+                $view = 'ma.hod';
                 $readonly = true;
                 break;
             case 6: // Processing Dean
-                $view = 'dean.show';
+                $view = 'ma.dean';
                 $readonly = true;
                 break;
             case 7: // Processing VC
             case 8: // VC Approved
-                $view = 'vc.show';
+                $view = 'ma.vc';
                 $readonly = true;
                 break;
             default:
@@ -352,5 +352,20 @@ class MAController extends Controller
             ->get();
         return view('ma.status', compact('statusApplications'));
     }
-} 
+
+    public function showHod($id)
+    {
+        return $this->show($id);
+    }
+
+    public function showDean($id)
+    {
+        return $this->show($id);
+    }
+
+    public function showVc($id)
+    {
+        return $this->show($id);
+    }
+}
 

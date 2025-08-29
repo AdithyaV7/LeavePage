@@ -59,6 +59,7 @@ Route::middleware('checklogin')->group(function () {
 
     // AJAX endpoint for temporary file upload
     Route::post('/leave/upload-temp-file', [LeaveController::class, 'uploadTempFile'])->name('leaves.uploadTempFile');
+    Route::post('/leave/delete-temp-file', [LeaveController::class, 'deleteTempFile'])->name('leaves.deleteTempFile');
 
     // AJAX endpoint for saving travel details
     Route::post('/leave/save-travel-detail', [LeaveController::class, 'saveTravelDetail'])->name('leaves.saveTravelDetail');
@@ -74,3 +75,6 @@ Route::middleware('checklogin')->group(function () {
 Route::get('/dashboard', [MAController::class, 'dashboard'])->name('ma.dashboard');
 Route::get('/dashboard/vc-approved', [MAController::class, 'dashboardVcApproved'])->name('ma.dashboard.vcapproved');
 Route::get('/dashboard/status', [MAController::class, 'statusPage'])->name('ma.status');
+Route::get('/MApage/{id}/hod', [MAController::class, 'showHod'])->name('ma.show.hod');
+Route::get('/MApage/{id}/dean', [MAController::class, 'showDean'])->name('ma.show.dean');
+Route::get('/MApage/{id}/vc', [MAController::class, 'showVc'])->name('ma.show.vc');
