@@ -342,13 +342,7 @@
         <i class="fas fa-eye"></i> This application is in a different workflow stage. You have read-only access.
     </div>
     @endif
-    <!-- Signature Block -->
-    <div class="mt-5 text-start">
-        <div class="fw-bold">Dr. S. Perera</div>
-        <div>Dean FAS</div>
-        <div>Applied Science</div>
-        <div>University of Sri Jayewardenepura</div>
-    </div>
+
 </div>
 <script>
     // Dean Form Validation

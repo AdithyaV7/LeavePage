@@ -314,18 +314,23 @@
                     <label class="form-label fw-semibold">Any other remarks (optional)</label>
                     <textarea name="hod_other_remarks" class="form-control"></textarea>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Today's Date</label>
-                    <input type="text" class="form-control" value="{{ date('Y-m-d') }}" readonly>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-success me-2" id="hod-submit-btn">
+                        <i class="fas fa-check me-2"></i>Forward
+                    </button>
+
+                    <!-- Dean Information - Aligned with Forward Button -->
+                    @if(isset($deanInfo) && $deanInfo)
+                    <div class="dean-info-inline">
+                        <div class="dean-info-header">Forward to,</div>
+                        <div class="dean-name">
+                            {{ $deanInfo->title ?? '' }} {{ $deanInfo->initials ?? '' }} {{ $deanInfo->last_name ?? '' }}
+                        </div>
+                        <div class="dean-faculty">{{ $deanInfo->faculty_name ?? '' }}</div>
+                    </div>
+                    @endif
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Signature (Name with initials) *</label>
-                    <input type="text" name="hod_signature" class="form-control" value="O. Wickramasinghe" required>
-                    <div id="hod_signature_error" class="text-danger small d-none">Please enter your signature.</div>
-                </div>
-                <button type="button" class="btn btn-success me-2" id="hod-submit-btn">
-                    <i class="fas fa-check me-2"></i>Forward
-                </button>
             </form>
         </div>
     </div>
@@ -370,12 +375,7 @@
             isValid = false;
         }
 
-        // Validate signature
-        const signature = document.querySelector('input[name="hod_signature"]');
-        if (!signature || !signature.value.trim()) {
-            showHODError('hod_signature_error');
-            isValid = false;
-        }
+
 
         // Validate not recommend reason if "Not Recommend" is selected
         const notRecommend = document.getElementById('recommend_no').checked;
@@ -400,8 +400,7 @@
             'hod_adequate_staff_error',
             'hod_teaching_covered_error',
             'hod_exam_work_completed_error',
-            'hod_recommend_error',
-            'hod_signature_error'
+            'hod_recommend_error'
         ];
 
         errorIds.forEach(function(errorId) {
@@ -417,8 +416,7 @@
             '#hod_adequate_staff_error:not(.d-none)',
             '#hod_teaching_covered_error:not(.d-none)',
             '#hod_exam_work_completed_error:not(.d-none)',
-            '#hod_recommend_error:not(.d-none)',
-            '#hod_signature_error:not(.d-none)'
+            '#hod_recommend_error:not(.d-none)'
         ];
 
         for (let selector of errorSelectors) {
@@ -480,9 +478,7 @@
             });
         });
 
-        document.querySelector('input[name="hod_signature"]').addEventListener('input', function() {
-            document.getElementById('hod_signature_error').classList.add('d-none');
-        });
+
     });
 </script>
 
@@ -638,6 +634,40 @@
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dean Information Inline Styling */
+.dean-info-inline {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #007bff;
+    border-radius: 6px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+    min-width: 220px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: right;
+}
+
+.dean-info-inline .dean-info-header {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.dean-info-inline .dean-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.dean-info-inline .dean-faculty {
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+    line-height: 1.1;
 }
 </style>
 

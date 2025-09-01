@@ -100,6 +100,25 @@ class HODController extends Controller
             return redirect()->route('hod.index')->with('error', 'Application not found.');
         }
 
+        // Get Dean information for this faculty
+        $deanInfo = null;
+        if ($application->faculty_id) {
+            $deanInfo = DB::table('faculty_deans')
+                ->join('employees as dean_emp', 'faculty_deans.emp_no', '=', 'dean_emp.employee_no')
+                ->leftJoin('categories', 'dean_emp.title_id', '=', 'categories.id')
+                ->leftJoin('faculties', 'faculty_deans.faculty_id', '=', 'faculties.id')
+                ->where('faculty_deans.faculty_id', $application->faculty_id)
+                ->where('faculty_deans.active_status', 1)
+                ->whereRaw('(faculty_deans.end_date IS NULL OR faculty_deans.end_date >= CURDATE())')
+                ->select(
+                    'categories.category_name as title',
+                    'dean_emp.initials',
+                    'dean_emp.last_name',
+                    'faculties.faculty_name'
+                )
+                ->first();
+        }
+
         // Decode JSON fields to arrays for multiple files
         $application->leave_documents = $application->leave_document
             ? json_decode($application->leave_document, true)
@@ -124,7 +143,7 @@ class HODController extends Controller
                 return $detail;
             });
 
-        return view('hod.show', compact('application', 'travelDetails'));
+        return view('hod.show', compact('application', 'travelDetails', 'deanInfo'));
     }
 
     public function approve(Request $request, $id)
@@ -135,7 +154,6 @@ class HODController extends Controller
             'hod_exam_work_completed' => 'required|boolean',
             'hod_recommend' => 'required|boolean',
             'hod_not_recommend_reason' => 'required_if:hod_recommend,0',
-            'hod_signature' => 'required|string|max:100',
         ]);
 
         // Get department IDs for this HOD
@@ -168,7 +186,6 @@ class HODController extends Controller
                 'hod_other_remarks' => $request->hod_other_remarks,
                 'hod_reviewed_by' => 'O. Wickramasinghe',
                 'hod_reviewed_at' => now(),
-                'hod_signature' => $request->hod_signature,
                 // New HOD fields
                 'hod_name' => 'O. Wickramasinghe',
                 'hod_recommendation' => $request->hod_recommend,

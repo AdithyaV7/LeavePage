@@ -156,10 +156,10 @@ class DeanController extends Controller
             ->update([
                 'dean_recommend' => $request->dean_recommend,
                 'dean_remarks' => $request->dean_remarks,
-                'dean_reviewed_by' => 'Dr. S. Perera', // Or get from auth if available
+                'dean_reviewed_by' => 'Dean', // Or get from auth if available
                 'dean_reviewed_at' => now(),
-                'dean_name' => 'Dr. S. Perera',
-                'dean_designation' => 'Dean FAS',
+                'dean_name' => 'Dean',
+                'dean_designation' => 'Dean',
                 'dean_empno' => self::DEAN_EMP_NO, // Record which Dean processed this
                 'status_id' => 7, // Processing VC
                 'updated_at' => now(),
