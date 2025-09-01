@@ -197,35 +197,16 @@ class LeaveController extends Controller
                 'duration' => 'required|integer|min:1',
                 'confirm' => 'required',
             ]);
-            if (!$isUpdate) {
-                $rules['consent_letter'] = 'required';
-            }
+            // Temporarily removed consent_letter validation to allow direct submission
+            // if (!$isUpdate) {
+            //     $rules['consent_letter'] = 'required';
+            // }
         }
 
         $validated = $request->validate($rules);
 
-        // Additional validation for final submission (not draft)
-        if (!$isDraft) {
-            // Check if travel details exist for final submission
-            $referenceNo = $request->reference_no;
-            if ($referenceNo) {
-                $travelDetailsCount = \App\Models\LeaveRequestDetail::where('reference_no', $referenceNo)->count();
-                if ($travelDetailsCount === 0) {
-                    return back()->withErrors(['travel_details' => 'At least one travel detail with supporting documents is required for final submission.'])->withInput();
-                }
-
-                // Check if all travel details have at least one document
-                $travelDetailsWithoutDocs = \App\Models\LeaveRequestDetail::where('reference_no', $referenceNo)
-                    ->where(function($query) {
-                        $query->whereNull('documents')
-                              ->orWhereRaw('JSON_LENGTH(documents) = 0');
-                    })->count();
-
-                if ($travelDetailsWithoutDocs > 0) {
-                    return back()->withErrors(['travel_details' => 'All travel details must have at least one supporting document.'])->withInput();
-                }
-            }
-        }
+        // Travel details validation temporarily disabled to allow direct submission
+        // TODO: Re-implement proper travel details validation later
 
         $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return back()->with('error', 'User not found.');

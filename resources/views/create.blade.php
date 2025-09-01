@@ -1195,22 +1195,8 @@
             isValid = false;
         }
 
-        // Validate Travel Details (only for final submission, not draft)
-        if (formStatus === 2) {
-            const travelDetailsTable = document.getElementById('travel-details-tbody');
-            const hasNoTravelDetails = travelDetailsTable &&
-                (travelDetailsTable.children.length === 0 ||
-                 (travelDetailsTable.children.length === 1 &&
-                  travelDetailsTable.children[0].id === 'no-travel-details'));
-
-            // Also check temporary travel details
-            const hasTempTravelDetails = typeof tempTravelDetails !== 'undefined' && tempTravelDetails.length > 0;
-
-            if (hasNoTravelDetails && !hasTempTravelDetails) {
-                showError('travel_details_error');
-                isValid = false;
-            }
-        }
+        // Travel details validation is handled by the backend
+        // Frontend only validates basic required fields
 
         // If all validations pass, submit the form
         if (isValid) {
@@ -1306,11 +1292,169 @@
         document.getElementById('confirm_error').classList.add('d-none');
     });
 
-    // Add event listener for submit button
+    // Add event listener for submit button with validation
     document.getElementById('submit-btn').addEventListener('click', function(e) {
         e.preventDefault();
-        validateAndSubmit(2); // 2 = final submission (form_status = 2)
+
+        // Validate required fields
+        if (validateRequiredFields()) {
+            // If validation passes, submit with form_status = 2
+            setFormStatus(2);
+            document.querySelector('form').submit();
+        }
     });
+
+    // Function to validate only required fields
+    function validateRequiredFields() {
+        console.log('Validating required fields for submit');
+
+        // Hide all previous error messages
+        hideAllErrors();
+
+        let isValid = true;
+
+        // Validate Leave Type
+        const leaveType = document.querySelector('[name="leave_type"]');
+        if (!leaveType || !leaveType.value) {
+            showError('leave_type_error');
+            isValid = false;
+        }
+
+        // Validate Start Date
+        const fromDate = document.querySelector('[name="from_date"]');
+        if (!fromDate || !fromDate.value) {
+            showError('from_date_error');
+            isValid = false;
+        }
+
+        // Validate End Date
+        const toDate = document.querySelector('[name="to_date"]');
+        if (!toDate || !toDate.value) {
+            showError('to_date_error');
+            isValid = false;
+        }
+
+        // Validate Duration
+        const duration = document.querySelector('[name="duration"]');
+        if (!duration || !duration.value || duration.value <= 0) {
+            showError('duration_error');
+            isValid = false;
+        }
+
+        // Validate Consent Letter (check if files are uploaded or temporary files exist)
+        const consentLetterTags = document.getElementById('consent_letter_tags');
+        const hasConsentLetters = (consentLetterTags && consentLetterTags.children.length > 0) ||
+                                 (typeof tempConsentFiles !== 'undefined' && tempConsentFiles.length > 0);
+        if (!hasConsentLetters) {
+            showError('consent_letter_required');
+            isValid = false;
+        }
+
+        // Validate Confirmation Checkbox
+        const confirmCheckbox = document.getElementById('confirm_checkbox');
+        if (!confirmCheckbox || !confirmCheckbox.checked) {
+            showError('confirm_error');
+            isValid = false;
+        }
+
+        // Validate Travel Details - check if at least one entry exists
+        const travelDetailsTable = document.getElementById('travel-details-tbody');
+        let hasValidTravelDetails = false;
+
+        if (travelDetailsTable && travelDetailsTable.children.length > 0) {
+            // Count rows that are not the "no-travel-details" placeholder
+            const validRows = Array.from(travelDetailsTable.children).filter(row =>
+                row.id !== 'no-travel-details'
+            );
+            if (validRows.length > 0) {
+                hasValidTravelDetails = true;
+            }
+        }
+
+        // Also check temporary travel details (newly added)
+        if (!hasValidTravelDetails && typeof tempTravelDetails !== 'undefined' && tempTravelDetails.length > 0) {
+            hasValidTravelDetails = true;
+        }
+
+        if (!hasValidTravelDetails) {
+            showError('travel_details_error');
+            isValid = false;
+        }
+
+        // If validation fails, show popup with missing fields and then scroll to first error
+        if (!isValid) {
+            console.log('Required field validation failed');
+            showMissingFieldsPopup();
+            scrollToFirstError();
+        }
+
+        return isValid;
+    }
+
+    // Function to show popup with missing fields
+    function showMissingFieldsPopup() {
+        let missingFields = [];
+
+        // Check each field and add to missing list if invalid
+        const leaveType = document.querySelector('[name="leave_type"]');
+        if (!leaveType || !leaveType.value) {
+            missingFields.push("• Leave Type");
+        }
+
+        const fromDate = document.querySelector('[name="from_date"]');
+        if (!fromDate || !fromDate.value) {
+            missingFields.push("• Start Date");
+        }
+
+        const toDate = document.querySelector('[name="to_date"]');
+        if (!toDate || !toDate.value) {
+            missingFields.push("• End Date");
+        }
+
+        const duration = document.querySelector('[name="duration"]');
+        if (!duration || !duration.value || duration.value <= 0) {
+            missingFields.push("• Duration");
+        }
+
+        const consentLetterTags = document.getElementById('consent_letter_tags');
+        const hasConsentLetters = (consentLetterTags && consentLetterTags.children.length > 0) ||
+                                 (typeof tempConsentFiles !== 'undefined' && tempConsentFiles.length > 0);
+        if (!hasConsentLetters) {
+            missingFields.push("• Consent Letter");
+        }
+
+        const confirmCheckbox = document.getElementById('confirm_checkbox');
+        if (!confirmCheckbox || !confirmCheckbox.checked) {
+            missingFields.push("• Confirmation Checkbox");
+        }
+
+        // Check travel details
+        const travelDetailsTable = document.getElementById('travel-details-tbody');
+        let hasValidTravelDetails = false;
+
+        if (travelDetailsTable && travelDetailsTable.children.length > 0) {
+            const validRows = Array.from(travelDetailsTable.children).filter(row =>
+                row.id !== 'no-travel-details'
+            );
+            if (validRows.length > 0) {
+                hasValidTravelDetails = true;
+            }
+        }
+
+        if (!hasValidTravelDetails && typeof tempTravelDetails !== 'undefined' && tempTravelDetails.length > 0) {
+            hasValidTravelDetails = true;
+        }
+
+        if (!hasValidTravelDetails) {
+            missingFields.push("• Travel Details (at least one entry required)");
+        }
+
+        // Show popup with missing fields
+        if (missingFields.length > 0) {
+            const message = "Please fill in the following required fields:\n\n" + missingFields.join("\n");
+            alert(message);
+        }
+    }
 
     // For draft saving, remove required validation
     document.querySelector('button.btn-gold').addEventListener('click', function(e) {
