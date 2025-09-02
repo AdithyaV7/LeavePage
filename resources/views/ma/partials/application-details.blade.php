@@ -68,13 +68,13 @@
     </div>
 </div>
 
-<!-- Travel Details -->
+<!-- Leave request documents -->
 @if(isset($travelDetails) && count($travelDetails) > 0)
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark fw-semibold">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <i class="fas fa-plane me-2"></i>Travel Details
+                <i class="fas fa-plane me-2"></i>Details
             </div>
             <small class="badge bg-dark">{{ count($travelDetails) }} destination(s)</small>
         </div>
@@ -84,7 +84,7 @@
             <div class="travel-detail-entry {{ $index > 0 ? 'border-top pt-3 mt-3' : '' }}">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Travel Details</label>
+                        <label class="form-label fw-semibold">Details</label>
                         <textarea class="form-control" rows="3" readonly>{{ $detail->detail }}</textarea>
                     </div>
                     <div class="col-md-6">
@@ -92,16 +92,16 @@
                         <input type="text" class="form-control" value="{{ $detail->country }}" readonly>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Travel From Date</label>
+                        <label class="form-label fw-semibold">Start date</label>
                         <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($detail->travel_from_date)->format('F d, Y') }}" readonly>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Travel To Date</label>
+                        <label class="form-label fw-semibold">End date</label>
                         <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($detail->travel_to_date)->format('F d, Y') }}" readonly>
                     </div>
                     @if(!empty($detail->documents) && count($detail->documents) > 0)
                     <div class="col-md-12">
-                        <label class="form-label fw-semibold">Travel Documents</label>
+                        <label class="form-label fw-semibold">Documents</label>
                         <div class="travel-documents-container">
                             @foreach($detail->documents as $doc)
                                 <div class="document-item mb-3 p-3 border rounded">
@@ -111,7 +111,7 @@
                                             <div>
                                                 <span class="fw-semibold">{{ basename($doc) }}</span>
                                                 <br>
-                                                <small class="text-muted">Travel Document</small>
+                                                <small class="text-muted">Document</small>
                                             </div>
                                         </div>
                                         <div class="document-actions">
@@ -139,10 +139,10 @@
                     </div>
                     @else
                     <div class="col-md-12">
-                        <label class="form-label fw-semibold">Travel Documents</label>
+                        <label class="form-label fw-semibold">Documents</label>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            No travel documents uploaded for this destination.
+                            No documents uploaded for this destination.
                         </div>
                     </div>
                     @endif
@@ -152,15 +152,15 @@
     </div>
 </div>
 @else
-<!-- No Travel Details -->
+<!-- No Leave request documents -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white fw-semibold">
-        <i class="fas fa-plane me-2"></i>Travel Details
+        <i class="fas fa-plane me-2"></i>Details
     </div>
     <div class="card-body">
         <div class="alert alert-info mb-0">
             <i class="fas fa-info-circle me-2"></i>
-            No travel details provided for this leave application.
+            No details provided for this leave application.
         </div>
     </div>
 </div>
