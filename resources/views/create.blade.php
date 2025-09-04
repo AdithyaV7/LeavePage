@@ -180,7 +180,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <i class="fas fa-plane me-2"></i>
-                                <span class="fw-bold">Travel Details</span>
+                                <span class="fw-bold">Leave Request Documents</span>
                             </div>
                             <small class="opacity-75">Add travel destinations and upload supporting documents</small>
                         </div>
@@ -188,7 +188,7 @@
                     <div class="card-body p-4">
                         <div class="alert alert-info border-0 mb-4">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Instructions:</strong> Please provide details for each travel destination. You can upload multiple documents for each entry.
+                            <strong>Instructions:</strong> Please provide details. You can upload multiple documents for each entry.
                         </div>
 
                         <div id="travel-entries">
@@ -197,14 +197,14 @@
                                     <div class="card border-2 border-primary">
                                         <div class="card-header bg-light">
                                             <h6 class="mb-0 text-primary">
-                                                <i class="fas fa-map-marker-alt me-2"></i>Travel Destination 1
+                                                <i class="fas fa-map-marker-alt me-2"></i>Document
                                             </h6>
                                         </div>
                                         <div class="card-body">
                                             <div class="row g-3">
                                                 <div class="col-md-6">
                                                     <label for="travel_detail_0" class="form-label fw-semibold">
-                                                        <i class="fas fa-edit me-1 text-primary"></i>Travel Details
+                                                        <i class="fas fa-edit me-1 text-primary"></i>Details
                                                     </label>
                                                     <textarea class="form-control" id="travel_detail_0" name="travel_detail[]" rows="3"
                                                             placeholder="Describe the purpose and details of this travel..."></textarea>
@@ -246,14 +246,14 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="travel_from_datetime_0" class="form-label fw-semibold">
-                                                        <i class="fas fa-calendar-alt me-1 text-primary"></i>Travel Start Date
+                                                        <i class="fas fa-calendar-alt me-1 text-primary"></i>Start Date
                                                     </label>
                                                     <input type="date" class="form-control travel-start-date" id="travel_from_datetime_0"
                                                            name="travel_from_datetime[]" min="{{ date('Y-m-d') }}" data-index="0">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="travel_to_datetime_0" class="form-label fw-semibold">
-                                                        <i class="fas fa-calendar-check me-1 text-primary"></i>Travel End Date
+                                                        <i class="fas fa-calendar-check me-1 text-primary"></i>End Date
                                                     </label>
                                                     <input type="date" class="form-control travel-end-date" id="travel_to_datetime_0"
                                                            name="travel_to_datetime[]" min="{{ date('Y-m-d') }}" data-index="0">
@@ -264,9 +264,9 @@
                                                     </label>
                                                     <div class="upload-area border-2 border-dashed border-primary rounded p-4 text-center bg-light">
                                                         <div class="upload-content">
-                                                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
-                                                            <h6 class="text-primary">Upload Travel Documents</h6>
-                                                            <p class="text-muted mb-3">Drag and drop files here or click to browse</p>
+                                                            
+                                                            <h6 class="text-primary">Upload Documents</h6>
+                                                            <p class="text-muted mb-3">Click to browse</p>
                                                             <input type="file" class="form-control travel-document-input d-none"
                                                                    id="travel_document_0" data-index="0" multiple
                                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
@@ -1725,7 +1725,7 @@
 }
 
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #800000 0%, #800000 100%);
+    background: linear-gradient(135deg,rgb(4, 4, 4) 100%,rgb(4, 4, 4) 100%);
 }
 
 .travel-entry-card .card {
@@ -1740,12 +1740,12 @@
 
 .bg-info {
     --bs-bg-opacity: 1;
-    background-color: rgb(128 5 5) !important;
+    background-color: rgb(4 4 4) !important;
 }
 
 .bg-success {
     --bs-bg-opacity: 1;
-    background-color: rgb(128 5 5) !important;
+    background-color: rgb(4 4 4) !important;
 }
 
 
@@ -1891,7 +1891,7 @@
 }
 
 #travel-details-table th {
-    background-color: #007bff;
+    background-color:rgb(3, 3, 3);
     color: white;
     font-weight: 600;
     border: none;

@@ -221,15 +221,14 @@
                                 <th>Ref No</th>
                                 <th>Leave Type</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($previousLeaves as $leave)
                                 <tr
                                     @if ($leave->form_status == 3)
-                                        onclick="window.location='{{ route('leaves.create', ['id' => $leave->id]) }}'"
                                         style="cursor: pointer; background-color: #fff8e1;"
-                                        title="Click to edit returned form"
                                     @endif
                                     class="@if($leave->form_status == 3) table-warning @endif hoverable-row"
                                 >
@@ -242,10 +241,25 @@
                                             <span class="badge bg-warning text-dark ms-2">Returned</span>
                                         @endif
                                     </td>
+                                    <td>
+                                        @if ($leave->form_status == 3)
+                                            <a href="{{ route('leaves.create', ['id' => $leave->id]) }}" 
+                                               class="btn btn-primary btn-sm" 
+                                               title="Open returned application for editing">
+                                                <i class="fas fa-edit me-1"></i>Open
+                                            </a>
+                                        @else
+                                            <a href="{{ route('leaves.show', ['id' => $leave->id]) }}" 
+                                               class="btn btn-info btn-sm" 
+                                               title="View submitted application">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </a>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4">No previous leaves found.</td>
+                                    <td colspan="5">No previous leaves found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -180,6 +180,71 @@ class LeaveController extends Controller
         return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark', 'travelDetails'));
     }
 
+    public function show($id)
+    {
+        // Get employee data from employees table with related information
+        $user = DB::table('employees')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
+            ->where('employees.employee_no', session('empno'))
+            ->select(
+                'employees.employee_no as empno',
+                'employees.nic',
+                DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
+                'employees.name_denoted_by_initials as names_denoted_by_initials',
+                'departments.department_name as department',
+                'faculties.faculty_name as faculty',
+                'designations.designation_name as designation',
+                'employees.mobile_no as mobile'
+            )
+            ->first();
+
+        if (!$user)
+            abort(404, 'User not found');
+
+        $leaveTypes = DB::table('leave_types')->get();
+        $statuses = DB::table('statuses')->pluck('status', 'stat_id');
+
+        // Get the leave record for viewing (only submitted or approved applications)
+        $leave = \App\Models\LeaveDetail::with(['leaveType', 'status'])
+            ->where('id', $id)
+            ->where('nic', $user->nic)
+            ->first();
+        if (!$leave || !in_array($leave->form_status, [2, 4, 5, 6, 7])) {
+            return redirect()->route('leaves.index')->with('error', 'Application not found or cannot be viewed.');
+        }
+
+        // Get the remark if it exists
+        $remark = $leave->remark;
+
+        // Only fetch previous leaves with status_id = 1 (approved) for the current academic year
+        $previousLeaves = DB::table('leave_details')
+            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
+            ->where('leave_details.nic', $user->nic)
+            ->where('leave_details.status_id', 1)
+            ->whereYear('leave_details.applied_date', now()->year)
+            ->orderByDesc('leave_details.applied_date')
+            ->select(
+                'leave_types.name as leave_type',
+                'from_date',
+                'to_date',
+                'leave_details.duration',
+                'statuses.status',
+                'leave_details.applied_date'
+            )
+            ->get();
+
+        // Load existing travel details
+        $travelDetails = [];
+        if ($leave) {
+            $travelDetails = LeaveRequestDetail::where('reference_no', $leave->reference_no)->get();
+        }
+
+        return view('leaves.show', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark', 'travelDetails'));
+    }
+
     public function store(Request $request)
     {
         $isDraft = $request->form_status == 1;

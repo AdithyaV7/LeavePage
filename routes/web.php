@@ -46,6 +46,7 @@ Route::middleware('checklogin')->group(function () {
     
     Route::get('/firstPage', [LeaveController::class, 'index'])->name('leaves.index'); // Landing page
     Route::get('/leave/create', [LeaveController::class, 'create'])->name('leaves.create'); // Create new leave or open draft/returned
+    Route::get('/leave/show/{id}', [LeaveController::class, 'show'])->name('leaves.show'); // View submitted leave application
     Route::post('/leave/store', [LeaveController::class, 'store'])->name('leaves.store'); // Save (submit or draft)
     Route::delete('/leave/delete/{id}', [LeaveController::class, 'destroy'])->name('leaves.destroy'); // Delete draft
 
