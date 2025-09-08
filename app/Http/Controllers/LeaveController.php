@@ -6,6 +6,7 @@ use App\Models\LeaveDetail;
 use App\Models\LeaveRequestDetail;
 use App\Models\LeaveType;
 use App\Models\Status;
+use App\Models\OtherLeavesDetail;
 use Illuminate\Support\Facades\Session;
 
 
@@ -330,6 +331,11 @@ class LeaveController extends Controller
             // Handle travel details
             $this->saveTravelDetails($request, $leave->reference_no);
 
+            // Also save to otherLeavesDetails table when form is submitted (form_status = 2)
+            if ($request->form_status == 2) {
+                $this->saveToOtherLeavesDetails($request, $leave->reference_no);
+            }
+
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         } else {
             // Handle multiple file uploads for new applications
@@ -418,6 +424,11 @@ class LeaveController extends Controller
 
             // Handle travel details
             $this->saveTravelDetails($request, $refNo);
+
+            // Also save to otherLeavesDetails table when form is submitted (form_status = 2)
+            if ($request->form_status == 2) {
+                $this->saveToOtherLeavesDetails($request, $refNo);
+            }
 
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         }
@@ -688,6 +699,129 @@ class LeaveController extends Controller
         }
     }
 
+    // Helper method to save data to otherLeavesDetails table
+    private function saveToOtherLeavesDetails(Request $request, $referenceNo)
+    {
+        try {
+            Log::info('Saving to otherLeavesDetails table for reference: ' . $referenceNo);
+            
+            // Get the leave_details record to access existing files
+            $leaveDetail = \App\Models\LeaveDetail::where('reference_no', $referenceNo)->first();
+            
+            if (!$leaveDetail) {
+                Log::error('LeaveDetail record not found for reference: ' . $referenceNo);
+                return;
+            }
+            
+            // Check if record already exists for this reference number
+            $existingRecord = OtherLeavesDetail::where('reference_no', $referenceNo)->first();
+            
+            // Get existing files from leave_details table and copy them to other_leaves directory
+            $existingLeaveDocs = is_array($leaveDetail->leave_document) ? $leaveDetail->leave_document : [];
+            $existingConsentLetters = is_array($leaveDetail->consent_letter) ? $leaveDetail->consent_letter : [];
+            
+            // Copy existing files to other_leaves directory
+            $copiedLeaveDocs = $this->copyFilesToOtherLeaves($existingLeaveDocs);
+            $copiedConsentLetters = $this->copyFilesToOtherLeaves($existingConsentLetters);
+            
+            // Get new files from request
+            $newLeaveDocs = $this->getFilePaths($request, 'leave_document');
+            $newConsentLetters = $this->getFilePaths($request, 'consent_letter');
+            
+            // Combine copied existing files and new files
+            $allLeaveDocs = array_merge($copiedLeaveDocs, $newLeaveDocs);
+            $allConsentLetters = array_merge($copiedConsentLetters, $newConsentLetters);
+            
+            $data = [
+                'leave_type_id' => $request->leave_type,
+                'from_date' => $request->from_date,
+                'end_date' => $request->to_date, // Note: form uses 'to_date' but table uses 'end_date'
+                'duration' => $request->duration,
+                'leave_document' => $allLeaveDocs,
+                'consent_letter' => $allConsentLetters,
+            ];
+            
+            Log::info('Existing leave documents from leave_details: ' . json_encode($existingLeaveDocs));
+            Log::info('Existing consent letters from leave_details: ' . json_encode($existingConsentLetters));
+            Log::info('Copied leave documents: ' . json_encode($copiedLeaveDocs));
+            Log::info('Copied consent letters: ' . json_encode($copiedConsentLetters));
+            Log::info('New leave documents from request: ' . json_encode($newLeaveDocs));
+            Log::info('New consent letters from request: ' . json_encode($newConsentLetters));
+            Log::info('Final leave documents: ' . json_encode($allLeaveDocs));
+            Log::info('Final consent letters: ' . json_encode($allConsentLetters));
+            
+            if ($existingRecord) {
+                // Update existing record
+                $existingRecord->update($data);
+                Log::info('Updated existing otherLeavesDetails record for reference: ' . $referenceNo);
+            } else {
+                // Create new record
+                $data['reference_no'] = $referenceNo;
+                OtherLeavesDetail::create($data);
+                Log::info('Created new otherLeavesDetails record for reference: ' . $referenceNo);
+            }
+        } catch (\Exception $e) {
+            // Log the error but don't break the main flow
+            Log::error('Error saving to otherLeavesDetails: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
+    }
+
+    // Helper method to get file paths from request
+    private function getFilePaths(Request $request, $fieldName)
+    {
+        $filePaths = [];
+
+        // Handle direct file uploads
+        if ($request->hasFile($fieldName)) {
+            foreach ($request->file($fieldName) as $file) {
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $date = now()->format('Ymd_His');
+                $filename = $originalName . '_' . $date . '.' . $ext;
+                $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                $filePaths[] = $path;
+            }
+        }
+
+        // Handle temporary file paths from hidden inputs
+        if ($request->has('temp_' . $fieldName . 's')) {
+            $tempPaths = json_decode($request->input('temp_' . $fieldName . 's'), true);
+            if (is_array($tempPaths)) {
+                foreach ($tempPaths as $tempPath) {
+                    if (Storage::disk('public')->exists($tempPath)) {
+                        // Move from temp to permanent location
+                        $filename = basename($tempPath);
+                        $newPath = 'uploads/other_leaves/' . $filename;
+                        Storage::disk('public')->move($tempPath, $newPath);
+                        $filePaths[] = $newPath;
+                    }
+                }
+            }
+        }
+
+        return $filePaths;
+    }
+
+    // Helper method to copy files from uploads to uploads/other_leaves
+    private function copyFilesToOtherLeaves($filePaths)
+    {
+        $copiedPaths = [];
+        
+        foreach ($filePaths as $filePath) {
+            if (Storage::disk('public')->exists($filePath)) {
+                $filename = basename($filePath);
+                $newPath = 'uploads/other_leaves/' . $filename;
+                
+                // Copy the file to other_leaves directory
+                Storage::disk('public')->copy($filePath, $newPath);
+                $copiedPaths[] = $newPath;
+            }
+        }
+        
+        return $copiedPaths;
+    }
+
     // AJAX method to save individual travel detail
     public function saveTravelDetail(Request $request)
     {
@@ -859,6 +993,255 @@ class LeaveController extends Controller
             'message' => 'Test upload received',
             'has_files' => $request->hasFile('documents'),
             'files_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0
+        ]);
+    }
+
+    // Test method to manually trigger saveToOtherLeavesDetails for debugging
+    public function testSaveToOtherLeaves($referenceNo)
+    {
+        try {
+            // Get the leave_details record
+            $leaveDetail = \App\Models\LeaveDetail::where('reference_no', $referenceNo)->first();
+            
+            if (!$leaveDetail) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'LeaveDetail record not found for reference: ' . $referenceNo
+                ], 404);
+            }
+
+            // Create a mock request object
+            $mockRequest = new \Illuminate\Http\Request();
+            $mockRequest->merge([
+                'leave_type' => $leaveDetail->leave_type_id,
+                'from_date' => $leaveDetail->from_date,
+                'to_date' => $leaveDetail->to_date,
+                'duration' => $leaveDetail->duration,
+            ]);
+
+            // Call the saveToOtherLeavesDetails method
+            $this->saveToOtherLeavesDetails($mockRequest, $referenceNo);
+
+            // Get the created/updated record
+            $otherLeave = OtherLeavesDetail::where('reference_no', $referenceNo)->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully saved to otherLeavesDetails',
+                'leave_detail' => $leaveDetail,
+                'other_leave' => $otherLeave
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store data to otherLeavesDetails table
+     */
+    public function storeOtherLeave(Request $request)
+    {
+        $rules = [
+            'leave_type_id' => 'required|exists:leave_types,id',
+            'from_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:from_date',
+            'duration' => 'required|integer|min:1',
+        ];
+
+        $validated = $request->validate($rules);
+
+        // Generate unique reference number
+        $referenceNo = 'OTHER_' . now()->format('YmdHis') . '_' . rand(1000, 9999);
+
+        // Handle file uploads
+        $leaveDocPaths = [];
+        $consentLetterPaths = [];
+
+        // Handle leave document uploads
+        if ($request->hasFile('leave_document')) {
+            foreach ($request->file('leave_document') as $file) {
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $date = now()->format('Ymd_His');
+                $filename = $originalName . '_' . $date . '.' . $ext;
+                $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                $leaveDocPaths[] = $path;
+            }
+        }
+
+        // Handle consent letter uploads
+        if ($request->hasFile('consent_letter')) {
+            foreach ($request->file('consent_letter') as $file) {
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $date = now()->format('Ymd_His');
+                $filename = $originalName . '_' . $date . '.' . $ext;
+                $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                $consentLetterPaths[] = $path;
+            }
+        }
+
+        // Create the other leave detail record
+        $otherLeave = OtherLeavesDetail::create([
+            'reference_no' => $referenceNo,
+            'leave_type_id' => $request->leave_type_id,
+            'from_date' => $request->from_date,
+            'end_date' => $request->end_date,
+            'duration' => $request->duration,
+            'leave_document' => $leaveDocPaths,
+            'consent_letter' => $consentLetterPaths,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Other leave details saved successfully',
+            'data' => $otherLeave
+        ]);
+    }
+
+    /**
+     * Get all other leave details
+     */
+    public function getOtherLeaves()
+    {
+        $otherLeaves = OtherLeavesDetail::with('leaveType')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $otherLeaves
+        ]);
+    }
+
+    /**
+     * Get a specific other leave detail by ID
+     */
+    public function getOtherLeave($id)
+    {
+        $otherLeave = OtherLeavesDetail::with('leaveType')->find($id);
+
+        if (!$otherLeave) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Other leave detail not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $otherLeave
+        ]);
+    }
+
+    /**
+     * Update other leave detail
+     */
+    public function updateOtherLeave(Request $request, $id)
+    {
+        $otherLeave = OtherLeavesDetail::find($id);
+
+        if (!$otherLeave) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Other leave detail not found'
+            ], 404);
+        }
+
+        $rules = [
+            'leave_type_id' => 'required|exists:leave_types,id',
+            'from_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:from_date',
+            'duration' => 'required|integer|min:1',
+        ];
+
+        $validated = $request->validate($rules);
+
+        // Handle file uploads
+        $leaveDocPaths = $otherLeave->leave_document ?? [];
+        $consentLetterPaths = $otherLeave->consent_letter ?? [];
+
+        // Handle new leave document uploads
+        if ($request->hasFile('leave_document')) {
+            foreach ($request->file('leave_document') as $file) {
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $date = now()->format('Ymd_His');
+                $filename = $originalName . '_' . $date . '.' . $ext;
+                $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                $leaveDocPaths[] = $path;
+            }
+        }
+
+        // Handle new consent letter uploads
+        if ($request->hasFile('consent_letter')) {
+            foreach ($request->file('consent_letter') as $file) {
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $date = now()->format('Ymd_His');
+                $filename = $originalName . '_' . $date . '.' . $ext;
+                $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                $consentLetterPaths[] = $path;
+            }
+        }
+
+        // Update the other leave detail record
+        $otherLeave->update([
+            'leave_type_id' => $request->leave_type_id,
+            'from_date' => $request->from_date,
+            'end_date' => $request->end_date,
+            'duration' => $request->duration,
+            'leave_document' => $leaveDocPaths,
+            'consent_letter' => $consentLetterPaths,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Other leave detail updated successfully',
+            'data' => $otherLeave
+        ]);
+    }
+
+    /**
+     * Delete other leave detail
+     */
+    public function deleteOtherLeave($id)
+    {
+        $otherLeave = OtherLeavesDetail::find($id);
+
+        if (!$otherLeave) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Other leave detail not found'
+            ], 404);
+        }
+
+        // Delete associated files from storage
+        if ($otherLeave->leave_document) {
+            foreach ($otherLeave->leave_document as $doc) {
+                if (Storage::disk('public')->exists($doc)) {
+                    Storage::disk('public')->delete($doc);
+                }
+            }
+        }
+
+        if ($otherLeave->consent_letter) {
+            foreach ($otherLeave->consent_letter as $doc) {
+                if (Storage::disk('public')->exists($doc)) {
+                    Storage::disk('public')->delete($doc);
+                }
+            }
+        }
+
+        $otherLeave->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Other leave detail deleted successfully'
         ]);
     }
 }

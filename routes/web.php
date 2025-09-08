@@ -71,6 +71,22 @@ Route::middleware('checklogin')->group(function () {
 
     Route::get('/leave/draft/create', [LeaveController::class, 'createDraft'])->name('leaves.draft.create');
     Route::get('/leave/new', [LeaveController::class, 'create'])->name('leaves.new'); // New application without database record
+
+    // Other Leaves Details routes
+    Route::post('/other-leaves/store', [LeaveController::class, 'storeOtherLeave'])->name('other-leaves.store');
+    Route::get('/other-leaves', [LeaveController::class, 'getOtherLeaves'])->name('other-leaves.index');
+    Route::get('/other-leaves/{id}', [LeaveController::class, 'getOtherLeave'])->name('other-leaves.show');
+    Route::put('/other-leaves/{id}', [LeaveController::class, 'updateOtherLeave'])->name('other-leaves.update');
+    Route::delete('/other-leaves/{id}', [LeaveController::class, 'deleteOtherLeave'])->name('other-leaves.delete');
+    
+    // Test route to view other leaves details
+    Route::get('/test-other-leaves', function() {
+        $otherLeaves = \App\Models\OtherLeavesDetail::with('leaveType')->get();
+        return response()->json($otherLeaves);
+    })->name('test.other-leaves');
+    
+    // Test route to manually trigger saveToOtherLeavesDetails
+    Route::get('/test-save-other-leaves/{referenceNo}', [LeaveController::class, 'testSaveToOtherLeaves'])->name('test.save-other-leaves');
 });
 
 Route::get('/dashboard', [MAController::class, 'dashboard'])->name('ma.dashboard');
