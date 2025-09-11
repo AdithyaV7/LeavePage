@@ -13,7 +13,6 @@ class LeaveTypesSeeder extends Seeder
             ['name' => 'Seminar'],
             ['name' => 'Training'],
             ['name' => 'Workshop'],
-            ['name' => 'Study Leave'],
         ]);
     }
 }

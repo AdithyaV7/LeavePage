@@ -19,33 +19,18 @@ use Carbon\Carbon;
 class LeaveController extends Controller
 {
     /**
-     * Generate a new reference number following the pattern: REF<empNo><Current year><04><auto increment>
+     * Generate a new reference number following the pattern: <empNo><year><04><No>
      */
     private function generateReferenceNumber($empNo)
     {
         $currentYear = date('Y');
-        $prefix = "REF{$empNo}{$currentYear}04";
+        
+        // Get the highest ID from leave_details table and add 1
+        $lastId = DB::table('leave_details')->max('id') ?? 0;
+        $newNo = $lastId + 1;
 
-        // Get the highest auto increment number for this employee and year
-        $lastRef = DB::table('leave_details')
-            ->where('empno', $empNo)
-            ->where('reference_no', 'LIKE', $prefix . '%')
-            ->orderByDesc('reference_no')
-            ->value('reference_no');
-
-        if ($lastRef) {
-            // Extract the auto increment part and increment it
-            $lastIncrement = (int) substr($lastRef, strlen($prefix));
-            $newIncrement = $lastIncrement + 1;
-        } else {
-            // First application for this employee this year
-            $newIncrement = 1;
-        }
-
-        // Pad with zeros to make it at least 3 digits
-        $incrementPart = str_pad($newIncrement, 3, '0', STR_PAD_LEFT);
-
-        return $prefix . $incrementPart;
+        // Format: <empNo><year><04><No>
+        return "{$empNo}{$currentYear}04{$newNo}";
     }
 
     public function index()
@@ -73,7 +58,8 @@ class LeaveController extends Controller
         // Note: In the future, you could join with form_statuses table to get readable status names
         // Example: ->join('form_statuses', 'leave_details.form_status', '=', 'form_statuses.form_stat_id')
         $previousLeaves = DB::table('leave_details')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherleavesdetails', 'leave_details.reference_no', '=', 'otherleavesdetails.reference_no')
+            ->join('leave_types', 'otherleavesdetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.nic', $user->nic)
             ->whereIn('leave_details.form_status', [2, 3])
@@ -105,9 +91,27 @@ class LeaveController extends Controller
             return redirect()->route('leaves.index')->with('error', 'Cannot delete this record.');
         }
 
-        DB::table('leave_details')->where('id', $id)->delete();
+        $referenceNo = $leave->reference_no;
 
-        return redirect()->route('leaves.index')->with('success', 'Draft deleted successfully.');
+        // Delete from all three tables
+        DB::beginTransaction();
+        try {
+            // Delete from leave_request_details table
+            DB::table('leave_request_details')->where('reference_no', $referenceNo)->delete();
+            
+            // Delete from otherleavesdetails table
+            DB::table('otherleavesdetails')->where('reference_no', $referenceNo)->delete();
+            
+            // Delete from leave_details table
+            DB::table('leave_details')->where('id', $id)->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('leaves.index')->with('success', 'Draft deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->route('leaves.index')->with('error', 'Error deleting record: ' . $e->getMessage());
+        }
     }
 
     //.................................................................................
@@ -139,6 +143,7 @@ class LeaveController extends Controller
 
         // Check if we're editing an existing record
         $leave = null;
+        $otherLeave = null;
         $remark = null;
 
         if ($request->has('id')) {
@@ -147,16 +152,20 @@ class LeaveController extends Controller
                 return redirect()->route('leaves.index')->with('error', 'You can only edit Drafts or Returned forms.');
             }
 
+            // Get the otherleavesdetails record for this reference
+            $otherLeave = OtherLeavesDetail::where('reference_no', $leave->reference_no)->first();
+
             // If it's a returned form, get the remark
             if ($leave->form_status == 3) {
                 $remark = $leave->remark;
             }
         }
-        // Note: For new applications, $leave will be null and the form will work without a database record
+        // Note: For new applications, $leave and $otherLeave will be null and the form will work without a database record
 
         // Only fetch previous leaves with status_id = 1 (approved) for the current academic year
         $previousLeaves = DB::table('leave_details')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherleavesdetails', 'leave_details.reference_no', '=', 'otherleavesdetails.reference_no')
+            ->join('leave_types', 'otherleavesdetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.nic', $user->nic)
             ->where('leave_details.status_id', 1)
@@ -164,9 +173,9 @@ class LeaveController extends Controller
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_types.name as leave_type',
-                'from_date',
-                'to_date',
-                'leave_details.duration',
+                'otherleavesdetails.from_date',
+                'otherleavesdetails.end_date as to_date',
+                'otherleavesdetails.duration',
                 'statuses.status',
                 'leave_details.applied_date'
             )
@@ -178,7 +187,7 @@ class LeaveController extends Controller
             $travelDetails = LeaveRequestDetail::where('reference_no', $leave->reference_no)->get();
         }
 
-        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark', 'travelDetails'));
+        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'otherLeave', 'remark', 'travelDetails'));
     }
 
     public function show($id)
@@ -216,12 +225,16 @@ class LeaveController extends Controller
             return redirect()->route('leaves.index')->with('error', 'Application not found or cannot be viewed.');
         }
 
+        // Get the otherleavesdetails record for this reference
+        $otherLeave = OtherLeavesDetail::where('reference_no', $leave->reference_no)->first();
+
         // Get the remark if it exists
         $remark = $leave->remark;
 
         // Only fetch previous leaves with status_id = 1 (approved) for the current academic year
         $previousLeaves = DB::table('leave_details')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherleavesdetails', 'leave_details.reference_no', '=', 'otherleavesdetails.reference_no')
+            ->join('leave_types', 'otherleavesdetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.nic', $user->nic)
             ->where('leave_details.status_id', 1)
@@ -229,9 +242,9 @@ class LeaveController extends Controller
             ->orderByDesc('leave_details.applied_date')
             ->select(
                 'leave_types.name as leave_type',
-                'from_date',
-                'to_date',
-                'leave_details.duration',
+                'otherleavesdetails.from_date',
+                'otherleavesdetails.end_date as to_date',
+                'otherleavesdetails.duration',
                 'statuses.status',
                 'leave_details.applied_date'
             )
@@ -243,7 +256,7 @@ class LeaveController extends Controller
             $travelDetails = LeaveRequestDetail::where('reference_no', $leave->reference_no)->get();
         }
 
-        return view('leaves.show', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'remark', 'travelDetails'));
+        return view('leaves.show', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'otherLeave', 'remark', 'travelDetails'));
     }
 
     public function store(Request $request)
@@ -263,16 +276,9 @@ class LeaveController extends Controller
                 'duration' => 'required|integer|min:1',
                 'confirm' => 'required',
             ]);
-            // Temporarily removed consent_letter validation to allow direct submission
-            // if (!$isUpdate) {
-            //     $rules['consent_letter'] = 'required';
-            // }
         }
 
         $validated = $request->validate($rules);
-
-        // Travel details validation temporarily disabled to allow direct submission
-        // TODO: Re-implement proper travel details validation later
 
         $user = DB::table('employees')->where('employee_no', session('empno'))->first();
         if (!$user) return back()->with('error', 'User not found.');
@@ -285,61 +291,10 @@ class LeaveController extends Controller
             if (!$leave) {
                 return back()->with('error', 'Record not found or cannot be updated.');
             }
-            // For submit, ensure at least one file exists in DB for each field
-            $leaveDocPaths = is_array($leave->leave_document) ? $leave->leave_document : [];
-            $consentLetterPaths = is_array($leave->consent_letter) ? $leave->consent_letter : [];
-            // Handle new uploads
-            if ($request->hasFile('leave_document')) {
-                foreach ($request->file('leave_document') as $file) {
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $ext = $file->getClientOriginalExtension();
-                    $date = now()->format('Ymd_His');
-                    $filename = $originalName . '_' . $date . '.' . $ext;
-                    $path = $file->storeAs('uploads', $filename, 'public');
-                    $leaveDocPaths[] = $path;
-                }
-            }
-            if ($request->hasFile('consent_letter')) {
-                foreach ($request->file('consent_letter') as $file) {
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $ext = $file->getClientOriginalExtension();
-                    $date = now()->format('Ymd_His');
-                    $filename = $originalName . '_' . $date . '.' . $ext;
-                    $path = $file->storeAs('uploads', $filename, 'public');
-                    $consentLetterPaths[] = $path;
-                }
-            }
-            if (!$isDraft) {
-                if (count($consentLetterPaths) == 0) {
-                    return back()->with('error', 'At least one consent letter is required.');
-                }
-            }
-            $leave->update([
-                'leave_type_id' => $request->leave_type,
-                'from_date' => $request->from_date,
-                'to_date' => $request->to_date,
-                'duration' => $request->duration,
-                'leave_document' => $leaveDocPaths,
-                'consent_letter' => $consentLetterPaths,
-                'status_id' => $request->form_status == 1 ? 3 : 4,
-                'form_status' => $request->form_status,
-                'department_id' => $user->department_id,
-                'faculty_id' => $user->faculty_id,
-                // Preserve existing remarks instead of setting to null
-            ]);
 
-            // Handle travel details
-            $this->saveTravelDetails($request, $leave->reference_no);
-
-            // Also save to otherLeavesDetails table when form is submitted (form_status = 2)
-            if ($request->form_status == 2) {
-                $this->saveToOtherLeavesDetails($request, $leave->reference_no);
-            }
-
-            return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
-        } else {
-            // Handle multiple file uploads for new applications
+            // Handle file uploads for otherleavesdetails
             $leaveDocPaths = [];
+            $consentLetterPaths = [];
 
             // Handle direct file uploads
             if ($request->hasFile('leave_document')) {
@@ -348,8 +303,19 @@ class LeaveController extends Controller
                     $ext = $file->getClientOriginalExtension();
                     $date = now()->format('Ymd_His');
                     $filename = $originalName . '_' . $date . '.' . $ext;
-                    $path = $file->storeAs('uploads', $filename, 'public');
+                    $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
                     $leaveDocPaths[] = $path;
+                }
+            }
+
+            if ($request->hasFile('consent_letter')) {
+                foreach ($request->file('consent_letter') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                    $consentLetterPaths[] = $path;
                 }
             }
 
@@ -359,9 +325,8 @@ class LeaveController extends Controller
                 if (is_array($tempPaths)) {
                     foreach ($tempPaths as $tempPath) {
                         if (Storage::disk('public')->exists($tempPath)) {
-                            // Move from temp to permanent location
                             $filename = basename($tempPath);
-                            $newPath = 'uploads/' . $filename;
+                            $newPath = 'uploads/other_leaves/' . $filename;
                             Storage::disk('public')->move($tempPath, $newPath);
                             $leaveDocPaths[] = $newPath;
                         }
@@ -369,66 +334,147 @@ class LeaveController extends Controller
                 }
             }
 
-            $consentLetterPaths = [];
-
-            // Handle direct file uploads
-            if ($request->hasFile('consent_letter')) {
-                foreach ($request->file('consent_letter') as $file) {
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $ext = $file->getClientOriginalExtension();
-                    $date = now()->format('Ymd_His');
-                    $filename = $originalName . '_' . $date . '.' . $ext;
-                    $path = $file->storeAs('uploads', $filename, 'public');
-                    $consentLetterPaths[] = $path;
-                }
-            }
-
-            // Handle temporary file paths from hidden inputs
             if ($request->has('temp_consent_letters')) {
                 $tempPaths = json_decode($request->temp_consent_letters, true);
                 if (is_array($tempPaths)) {
                     foreach ($tempPaths as $tempPath) {
                         if (Storage::disk('public')->exists($tempPath)) {
-                            // Move from temp to permanent location
                             $filename = basename($tempPath);
-                            $newPath = 'uploads/' . $filename;
+                            $newPath = 'uploads/other_leaves/' . $filename;
                             Storage::disk('public')->move($tempPath, $newPath);
                             $consentLetterPaths[] = $newPath;
                         }
                     }
                 }
             }
+
             if (!$isDraft) {
                 if (count($consentLetterPaths) == 0) {
                     return back()->with('error', 'At least one consent letter is required.');
                 }
             }
-            // Generate new reference number using the new pattern
-            $refNo = $this->generateReferenceNumber($user->employee_no);
-            \App\Models\LeaveDetail::create([
-                'empno' => $user->employee_no,
-                'nic' => $user->nic,
+
+            // Update or create otherleavesdetails record
+            $otherLeaveData = [
                 'leave_type_id' => $request->leave_type,
                 'from_date' => $request->from_date,
-                'to_date' => $request->to_date,
+                'end_date' => $request->to_date, // Note: to_date becomes end_date
                 'duration' => $request->duration,
                 'leave_document' => $leaveDocPaths,
                 'consent_letter' => $consentLetterPaths,
-                'status_id' => $request->form_status == 1 ? 3 : 4, // 3=Editing/Draft, 4=Processing MA
-                'form_status' => $request->form_status, // 1=Draft, 2=Submitted
+            ];
+
+            $existingOtherLeave = OtherLeavesDetail::where('reference_no', $leave->reference_no)->first();
+            if ($existingOtherLeave) {
+                $existingOtherLeave->update($otherLeaveData);
+            } else {
+                $otherLeaveData['reference_no'] = $leave->reference_no;
+                OtherLeavesDetail::create($otherLeaveData);
+            }
+
+            // Update leave_details table (only status and form_status)
+            $leave->update([
+                'status_id' => $request->form_status == 1 ? 3 : 4,
+                'form_status' => $request->form_status,
+                'department_id' => $user->department_id,
+                'faculty_id' => $user->faculty_id,
+            ]);
+
+            // Handle travel details
+            $this->saveTravelDetails($request, $leave->reference_no);
+
+            return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
+        } else {
+            // Handle file uploads for new applications
+            $leaveDocPaths = [];
+            $consentLetterPaths = [];
+
+            // Handle direct file uploads
+            if ($request->hasFile('leave_document')) {
+                foreach ($request->file('leave_document') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                    $leaveDocPaths[] = $path;
+                }
+            }
+
+            if ($request->hasFile('consent_letter')) {
+                foreach ($request->file('consent_letter') as $file) {
+                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $ext = $file->getClientOriginalExtension();
+                    $date = now()->format('Ymd_His');
+                    $filename = $originalName . '_' . $date . '.' . $ext;
+                    $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
+                    $consentLetterPaths[] = $path;
+                }
+            }
+
+            // Handle temporary file paths from hidden inputs
+            if ($request->has('temp_leave_documents')) {
+                $tempPaths = json_decode($request->temp_leave_documents, true);
+                if (is_array($tempPaths)) {
+                    foreach ($tempPaths as $tempPath) {
+                        if (Storage::disk('public')->exists($tempPath)) {
+                            $filename = basename($tempPath);
+                            $newPath = 'uploads/other_leaves/' . $filename;
+                            Storage::disk('public')->move($tempPath, $newPath);
+                            $leaveDocPaths[] = $newPath;
+                        }
+                    }
+                }
+            }
+
+            if ($request->has('temp_consent_letters')) {
+                $tempPaths = json_decode($request->temp_consent_letters, true);
+                if (is_array($tempPaths)) {
+                    foreach ($tempPaths as $tempPath) {
+                        if (Storage::disk('public')->exists($tempPath)) {
+                            $filename = basename($tempPath);
+                            $newPath = 'uploads/other_leaves/' . $filename;
+                            Storage::disk('public')->move($tempPath, $newPath);
+                            $consentLetterPaths[] = $newPath;
+                        }
+                    }
+                }
+            }
+
+            if (!$isDraft) {
+                if (count($consentLetterPaths) == 0) {
+                    return back()->with('error', 'At least one consent letter is required.');
+                }
+            }
+
+            // Generate new reference number
+            $refNo = $this->generateReferenceNumber($user->employee_no);
+
+            // Create leave_details record (minimal data)
+            \App\Models\LeaveDetail::create([
+                'empno' => $user->employee_no,
+                'nic' => $user->nic,
+                'status_id' => $request->form_status == 1 ? 3 : 4,
+                'form_status' => $request->form_status,
                 'reference_no' => $refNo,
                 'applied_date' => now()->addHours(5)->addMinutes(30),
                 'department_id' => $user->department_id,
                 'faculty_id' => $user->faculty_id,
             ]);
 
+            // Create otherleavesdetails record
+            OtherLeavesDetail::create([
+                'reference_no' => $refNo,
+                'leave_type_id' => $request->leave_type,
+                'from_date' => $request->from_date,
+                'end_date' => $request->to_date, // Note: to_date becomes end_date
+                'duration' => $request->duration,
+                'leave_document' => $leaveDocPaths,
+                'consent_letter' => $consentLetterPaths,
+            ]);
+
             // Handle travel details
             $this->saveTravelDetails($request, $refNo);
-
-            // Also save to otherLeavesDetails table when form is submitted (form_status = 2)
-            if ($request->form_status == 2) {
-                $this->saveToOtherLeavesDetails($request, $refNo);
-            }
 
             return redirect()->route('leaves.index')->with('success', 'Leave ' . ($request->form_status == 2 ? 'submitted' : 'saved as draft') . ' successfully!');
         }
@@ -452,8 +498,22 @@ class LeaveController extends Controller
             ->first();
         if (!$leave) return response()->json(['error' => 'Record not found or cannot be updated.'], 404);
 
+        // Get or create otherleavesdetails record
+        $otherLeave = OtherLeavesDetail::where('reference_no', $leave->reference_no)->first();
+        if (!$otherLeave) {
+            $otherLeave = OtherLeavesDetail::create([
+                'reference_no' => $leave->reference_no,
+                'leave_type_id' => null,
+                'from_date' => null,
+                'end_date' => null,
+                'duration' => null,
+                'leave_document' => [],
+                'consent_letter' => [],
+            ]);
+        }
+
         $type = $request->type;
-        $files = $leave->$type ?? [];
+        $files = $otherLeave->$type ?? [];
         if (!is_array($files)) $files = [];
 
         $file = $request->file('file');
@@ -461,17 +521,17 @@ class LeaveController extends Controller
         $ext = $file->getClientOriginalExtension();
         $date = now()->format('Ymd_His');
         $filename = $originalName . '_' . $date . '.' . $ext;
-        $path = $file->storeAs('uploads', $filename, 'public');
+        $path = $file->storeAs('uploads/other_leaves', $filename, 'public');
 
         // If file with same original name exists, replace it
         $files = array_filter($files, function($f) use ($originalName) {
             return strpos($f, $originalName . '_') !== 0;
         });
         $files[] = $path;
-        $leave->$type = array_values($files);
-        $leave->save();
+        $otherLeave->$type = array_values($files);
+        $otherLeave->save();
 
-        return response()->json(['success' => true, 'files' => $leave->$type]);
+        return response()->json(['success' => true, 'files' => $otherLeave->$type]);
     }
 
     // AJAX: Delete file for leave_document or consent_letter
@@ -492,8 +552,12 @@ class LeaveController extends Controller
             ->first();
         if (!$leave) return response()->json(['error' => 'Record not found or cannot be updated.'], 404);
 
+        // Get otherleavesdetails record
+        $otherLeave = OtherLeavesDetail::where('reference_no', $leave->reference_no)->first();
+        if (!$otherLeave) return response()->json(['error' => 'Other leave details not found.'], 404);
+
         $type = $request->type;
-        $files = $leave->$type ?? [];
+        $files = $otherLeave->$type ?? [];
         if (!is_array($files)) $files = [];
 
         $files = array_filter($files, function($f) use ($request) {
@@ -501,10 +565,10 @@ class LeaveController extends Controller
         });
         // Delete file from storage
         \Storage::disk('public')->delete($request->file);
-        $leave->$type = array_values($files);
-        $leave->save();
+        $otherLeave->$type = array_values($files);
+        $otherLeave->save();
 
-        return response()->json(['success' => true, 'files' => $leave->$type]);
+        return response()->json(['success' => true, 'files' => $otherLeave->$type]);
     }
 
     /**

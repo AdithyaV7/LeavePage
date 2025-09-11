@@ -90,7 +90,7 @@
                         <tr>
                             <td>{{ $prevLeave->leave_type}}</td>
                             <td>{{ $prevLeave->from_date }}</td>
-                            <td>{{ $prevLeave->to_date }}</td>
+                            <td>{{ $prevLeave->end_date }}</td>
                             <td>{{ $prevLeave->duration }}</td>
                             <td>{{ $prevLeave->status }}</td>
                         </tr>
@@ -113,19 +113,19 @@
         <div class="card-body row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Leave Type</label>
-                <input type="text" class="form-control" value="{{ $leave->leaveType->name ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ $otherLeave->leaveType->name ?? 'N/A' }}" readonly>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Start Date</label>
-                <input type="text" class="form-control" value="{{ $leave->from_date }}" readonly>
+                <input type="text" class="form-control" value="{{ $otherLeave->from_date ?? 'N/A' }}" readonly>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">End Date</label>
-                <input type="text" class="form-control" value="{{ $leave->to_date }}" readonly>
+                <input type="text" class="form-control" value="{{ $otherLeave->end_date ?? 'N/A' }}" readonly>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Duration (Days)</label>
-                <input type="text" class="form-control" value="{{ $leave->duration }}" readonly>
+                <input type="text" class="form-control" value="{{ $otherLeave->duration ?? 'N/A' }}" readonly>
             </div>
         </div>
     </div>
@@ -204,8 +204,8 @@
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Other Leave Request Documents</label>
                     <div class="mb-2">
-                        @if(isset($leave) && is_array($leave->leave_document) && count($leave->leave_document) > 0)
-                            @foreach($leave->leave_document as $file)
+                        @if(isset($otherLeave) && is_array($otherLeave->leave_document) && count($otherLeave->leave_document) > 0)
+                            @foreach($otherLeave->leave_document as $file)
                                 <span class="badge bg-secondary me-1">
                                     <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-white text-decoration-none">{{ basename($file) }}</a>
                                 </span>
@@ -219,8 +219,8 @@
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Consent Letter</label>
                     <div class="mb-2">
-                        @if(isset($leave) && is_array($leave->consent_letter) && count($leave->consent_letter) > 0)
-                            @foreach($leave->consent_letter as $file)
+                        @if(isset($otherLeave) && is_array($otherLeave->consent_letter) && count($otherLeave->consent_letter) > 0)
+                            @foreach($otherLeave->consent_letter as $file)
                                 <span class="badge bg-secondary me-1">
                                     <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-white text-decoration-none">{{ basename($file) }}</a>
                                 </span>

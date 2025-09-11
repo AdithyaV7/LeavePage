@@ -136,7 +136,7 @@
                         <option selected disabled value="">Select</option>
                         @foreach ($leaveTypes as $type)
                             <option value="{{ $type->id }}"
-                                {{ (isset($leave) && $leave->leave_type_id == $type->id) ? 'selected' : '' }}>
+                                {{ (isset($otherLeave) && $otherLeave->leave_type_id == $type->id) ? 'selected' : '' }}>
                                 {{ $type->name }}
                             </option>
                         @endforeach
@@ -149,7 +149,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Start Date *</label>
                     <input type="date" name="from_date" class="form-control @error('from_date') is-invalid @enderror" id="fromDate"
-                           value="{{ isset($leave) ? $leave->from_date : '' }}">
+                           value="{{ isset($otherLeave) && $otherLeave->from_date ? $otherLeave->from_date->format('Y-m-d') : '' }}">
                     @error('from_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -158,7 +158,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">End Date *</label>
                     <input type="date" name="to_date" class="form-control @error('to_date') is-invalid @enderror" id="toDate"
-                           value="{{ isset($leave) ? $leave->to_date : '' }}">
+                           value="{{ isset($otherLeave) && $otherLeave->end_date ? $otherLeave->end_date->format('Y-m-d') : '' }}">
                     @error('to_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -167,7 +167,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Duration (Days) *</label>
                     <input type="number" name="duration" class="form-control @error('duration') is-invalid @enderror" id="duration"
-                           value="{{ isset($leave) ? $leave->duration : '' }}">
+                           value="{{ isset($otherLeave) ? $otherLeave->duration : '' }}">
                     @error('duration')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -722,7 +722,17 @@
 
                         // Function to delete temporary travel detail
                         function deleteTempTravelDetail(tempId) {
-                            if (confirm('Are you sure you want to remove this travel detail?')) {
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'Are you sure you want to remove this travel detail?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#dc3545',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Yes, remove it!',
+                                cancelButtonText: 'Cancel'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
                                 // Find the travel detail to get its documents
                                 const travelDetail = tempTravelDetails.find(detail => detail.id == tempId);
 
@@ -753,7 +763,8 @@
                                 updateTravelDetailsTable();
 
                                 showNotification('Travel detail removed successfully', 'success');
-                            }
+                                }
+                            });
                         }
 
                         // Function to clear travel form
@@ -780,7 +791,17 @@
                         // Function to delete travel detail from database
                         function deleteTravelDetail(id) {
                             console.log('Delete button clicked for ID:', id); // Debug log
-                            if (confirm('Are you sure you want to remove this travel detail?')) {
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'Are you sure you want to remove this travel detail?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#dc3545',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Yes, remove it!',
+                                cancelButtonText: 'Cancel'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
                                 console.log('User confirmed deletion'); // Debug log
                                 const deleteUrl = `{{ url('/leave/delete-travel-detail') }}/${id}`;
                                 console.log('Delete URL:', deleteUrl); // Debug log
@@ -820,7 +841,8 @@
                                     console.error('Error:', error);
                                     showNotification('Error deleting travel detail', 'error');
                                 });
-                            }
+                                }
+                            });
                         }
 
                         // Function to view document (placeholder)
@@ -887,24 +909,46 @@
                             }
                         }
 
-                        // Function to show notifications
+                        // Function to show notifications using SweetAlert
                         function showNotification(message, type = 'info') {
-                            const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
-                            const notification = document.createElement('div');
-                            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-                            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-                            notification.innerHTML = `
-                                ${message}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            `;
-                            document.body.appendChild(notification);
+                            const config = {
+                                text: message,
+                                timer: 3000,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end',
+                                timerProgressBar: true
+                            };
 
-                            // Auto remove after 5 seconds
-                            setTimeout(() => {
-                                if (notification.parentNode) {
-                                    notification.remove();
-                                }
-                            }, 5000);
+                            switch (type) {
+                                case 'success':
+                                    Swal.fire({
+                                        ...config,
+                                        icon: 'success',
+                                        iconColor: '#28a745'
+                                    });
+                                    break;
+                                case 'error':
+                                    Swal.fire({
+                                        ...config,
+                                        icon: 'error',
+                                        iconColor: '#dc3545'
+                                    });
+                                    break;
+                                case 'warning':
+                                    Swal.fire({
+                                        ...config,
+                                        icon: 'warning',
+                                        iconColor: '#ffc107'
+                                    });
+                                    break;
+                                default:
+                                    Swal.fire({
+                                        ...config,
+                                        icon: 'info',
+                                        iconColor: '#17a2b8'
+                                    });
+                            }
                         }
 
 
@@ -915,7 +959,17 @@
                                 const index = button.getAttribute('data-index');
                                 const fileId = button.getAttribute('data-file-id');
 
-                                if (confirm('Are you sure you want to remove this document?')) {
+                                Swal.fire({
+                                    title: 'Are you sure?',
+                                    text: 'Are you sure you want to remove this document?',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#dc3545',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: 'Yes, remove it!',
+                                    cancelButtonText: 'Cancel'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
                                     // Remove from temporary storage
                                     if (tempUploadedFiles[index]) {
                                         tempUploadedFiles[index] = tempUploadedFiles[index].filter(f => f.id != fileId);
@@ -926,7 +980,8 @@
                                     updateTravelDocumentsInput(index);
 
                                     showNotification('File removed successfully', 'success');
-                                }
+                                    }
+                                });
                             }
                         });
 
@@ -997,8 +1052,8 @@
                         </div>
                     </div>
                     <div id="leave_document_tags" class="mb-2">
-                        @if(isset($leave) && is_array($leave->leave_document))
-                            @foreach($leave->leave_document as $file)
+                        @if(isset($otherLeave) && is_array($otherLeave->leave_document))
+                            @foreach($otherLeave->leave_document as $file)
                                 <span class="badge bg-secondary me-1">
                                     <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-white text-decoration-none">{{ basename($file) }}</a>
                                     <button type="button" class="btn-close btn-close-white btn-sm ms-1 delete-file-btn" data-type="leave_document" data-file="{{ $file }}" aria-label="Delete"></button>
@@ -1025,8 +1080,8 @@
                         </div>
                     </div>
                     <div id="consent_letter_tags" class="mb-2">
-                        @if(isset($leave) && is_array($leave->consent_letter))
-                            @foreach($leave->consent_letter as $file)
+                        @if(isset($otherLeave) && is_array($otherLeave->consent_letter))
+                            @foreach($otherLeave->consent_letter as $file)
                                 <span class="badge bg-secondary me-1">
                                     <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-white text-decoration-none">{{ basename($file) }}</a>
                                     <button type="button" class="btn-close btn-close-white btn-sm ms-1 delete-file-btn" data-type="consent_letter" data-file="{{ $file }}" aria-label="Delete"></button>
@@ -1077,9 +1132,20 @@
     <script>
         document.getElementById('cancel-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            if(confirm('Are you sure you want to cancel and delete this draft?')) {
-                document.getElementById('delete-draft-form').submit();
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Are you sure you want to cancel and delete this draft?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-draft-form').submit();
+                }
+            });
         });
     </script>
 @endif
@@ -1119,7 +1185,13 @@
             let prevTo = new Date(leave.to_date);
 
             if ((from >= prevFrom && from <= prevTo) || (to >= prevFrom && to <= prevTo)) {
-                alert("Selected range overlaps with an already approved leave.");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Date Conflict',
+                    text: 'Selected range overlaps with an already approved leave.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#ffc107'
+                });
                 document.getElementById("fromDate").value = '';
                 document.getElementById("toDate").value = '';
                 document.getElementById("duration").value = '';
@@ -1452,7 +1524,13 @@
         // Show popup with missing fields
         if (missingFields.length > 0) {
             const message = "Please fill in the following required fields:\n\n" + missingFields.join("\n");
-            alert(message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Required Fields',
+                html: message.replace(/\n/g, '<br>'),
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#dc3545'
+            });
         }
     }
 
@@ -1503,7 +1581,13 @@
                         document.getElementById('consent_letter_required').classList.add('d-none');
                     }
                 } else {
-                    alert(data.error || 'Upload failed');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: data.error || 'Upload failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             });
         }
@@ -1550,12 +1634,24 @@
                         document.getElementById('consent_letter_required').classList.add('d-none');
                     }
                 } else {
-                    alert(data.error || 'Upload failed');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: data.error || 'Upload failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Upload error:', error);
-                alert('Upload failed');
+                Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: 'Upload failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
             });
         }
 
@@ -1622,12 +1718,24 @@
 
                     e.target.closest('.badge').remove();
                 } else {
-                    alert(data.error || 'Delete failed');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Failed',
+                        text: data.error || 'Delete failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Delete error:', error);
-                alert('Delete failed');
+                Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Failed',
+                        text: 'Delete failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
             });
         }
     });
@@ -1708,7 +1816,13 @@
                         }
                     }
                 } else {
-                    alert(data.error || 'Delete failed');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Failed',
+                        text: data.error || 'Delete failed',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             });
         }
@@ -1957,5 +2071,3 @@
 </script>
 
 @endsection
-
-

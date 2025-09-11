@@ -21,7 +21,8 @@ class MAController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 4) // Processing MA
@@ -54,7 +55,8 @@ class MAController extends Controller
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
             ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
@@ -75,6 +77,22 @@ class MAController extends Controller
 
         if (!$application) {
             return redirect()->route('ma.index')->with('error', 'Application not found.');
+        }
+
+        // Load specific fields from otherLeavesDetails table
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
+
+        // Merge other leave details into application object
+        if ($otherLeaveDetails) {
+            $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+            $application->from_date = $otherLeaveDetails->from_date;
+            $application->end_date = $otherLeaveDetails->end_date;
+            $application->duration = $otherLeaveDetails->duration;
+            $application->leave_document = $otherLeaveDetails->leave_document;
+            $application->consent_letter = $otherLeaveDetails->consent_letter;
         }
 
         // Decode JSON fields to arrays for multiple files
@@ -151,6 +169,12 @@ class MAController extends Controller
             return redirect()->route('ma.index')->with('error', 'Application not found.');
         }
 
+        // Load specific fields from otherLeavesDetails table for validation/processing
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
+
         // Prepare new remark by appending to existing remarks
         $newRemark = '';
         if ($request->remark) {
@@ -194,6 +218,12 @@ class MAController extends Controller
             return redirect()->route('ma.index')->with('error', 'Application not found.');
         }
 
+        // Load specific fields from otherLeavesDetails table for validation/processing
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
+
         // Prepare new remark by appending to existing remarks
         $timestamp = now()->format('Y-m-d');
         $newRemark = "\n\n[MA Return - " . $timestamp . "]\n" . $request->remark;
@@ -226,7 +256,8 @@ class MAController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->whereIn('leave_details.form_status', [2, 3]) // Complete/Submitted
             ->whereIn('leave_details.status_id', [1, 2, 4, 5, 6, 7,8])
@@ -279,10 +310,28 @@ class MAController extends Controller
             )
             ->get();
 
+        // Load specific fields from otherLeavesDetails table for each application
+        foreach ($applications as $application) {
+            $otherLeaveDetails = DB::table('otherLeavesDetails')
+                ->where('reference_no', $application->reference_no)
+                ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+                ->first();
+
+            if ($otherLeaveDetails) {
+                $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+                $application->from_date = $otherLeaveDetails->from_date;
+                $application->end_date = $otherLeaveDetails->end_date;
+                $application->duration = $otherLeaveDetails->duration;
+                $application->leave_document = $otherLeaveDetails->leave_document;
+                $application->consent_letter = $otherLeaveDetails->consent_letter;
+            }
+        }
+
         // Applications for status sidebar (status_id 4-8) assigned to this MA
         $statusApplications = DB::table('leave_details')
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->whereBetween('leave_details.status_id', [4, 8])
             ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
@@ -308,7 +357,8 @@ class MAController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 8) // VC Approved
@@ -328,6 +378,23 @@ class MAController extends Controller
             )
             ->get();
 
+        // Load specific fields from otherLeavesDetails table for each application
+        foreach ($applications as $application) {
+            $otherLeaveDetails = DB::table('otherLeavesDetails')
+                ->where('reference_no', $application->reference_no)
+                ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+                ->first();
+
+            if ($otherLeaveDetails) {
+                $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+                $application->from_date = $otherLeaveDetails->from_date;
+                $application->end_date = $otherLeaveDetails->end_date;
+                $application->duration = $otherLeaveDetails->duration;
+                $application->leave_document = $otherLeaveDetails->leave_document;
+                $application->consent_letter = $otherLeaveDetails->consent_letter;
+            }
+        }
+
         return view('ma.vcapproved', compact('applications'));
     }
 
@@ -337,7 +404,8 @@ class MAController extends Controller
 
         $statusApplications = DB::table('leave_details')
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->whereBetween('leave_details.status_id', [4, 8])
             ->where('employees.assign_ma_user_id', $maUserId) // Filter by assigned MA
             ->orderByDesc('leave_details.applied_date')
@@ -350,6 +418,24 @@ class MAController extends Controller
                 'leave_details.status_id'
             )
             ->get();
+
+        // Load specific fields from otherLeavesDetails table for each application
+        foreach ($statusApplications as $application) {
+            $otherLeaveDetails = DB::table('otherLeavesDetails')
+                ->where('reference_no', $application->reference_no)
+                ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+                ->first();
+
+            if ($otherLeaveDetails) {
+                $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+                $application->from_date = $otherLeaveDetails->from_date;
+                $application->end_date = $otherLeaveDetails->end_date;
+                $application->duration = $otherLeaveDetails->duration;
+                $application->leave_document = $otherLeaveDetails->leave_document;
+                $application->consent_letter = $otherLeaveDetails->consent_letter;
+            }
+        }
+
         return view('ma.status', compact('statusApplications'));
     }
 

@@ -44,7 +44,8 @@ class DeanController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 6) // Processing Dean
@@ -75,7 +76,8 @@ class DeanController extends Controller
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
             ->where('leave_details.form_status', 2)
@@ -98,6 +100,22 @@ class DeanController extends Controller
 
         if (!$application) {
             return redirect()->route('dean.index')->with('error', 'Application not found.');
+        }
+
+        // Load specific fields from otherLeavesDetails table
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
+
+        // Merge other leave details into application object
+        if ($otherLeaveDetails) {
+            $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+            $application->from_date = $otherLeaveDetails->from_date;
+            $application->end_date = $otherLeaveDetails->end_date;
+            $application->duration = $otherLeaveDetails->duration;
+            $application->leave_document = $otherLeaveDetails->leave_document;
+            $application->consent_letter = $otherLeaveDetails->consent_letter;
         }
 
         // Decode JSON fields to arrays for multiple files
@@ -149,6 +167,12 @@ class DeanController extends Controller
         if (!$application) {
             return redirect()->route('dean.index')->with('error', 'Application not found.');
         }
+
+        // Load specific fields from otherLeavesDetails table for validation/processing
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
 
         // Always forward to VC (status_id = 7)
         DB::table('leave_details')

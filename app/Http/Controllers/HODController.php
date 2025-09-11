@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class HODController extends Controller
 {
     // Hardcoded HOD employee number - change this to switch to a different HOD
-    private const HOD_EMP_NO = 1054; // HOD for department 114 (has leave applications)
+    private const HOD_EMP_NO = 5178; // HOD for department 114 (has leave applications)
 
     /**
      * Get department IDs for the current HOD
@@ -44,7 +44,8 @@ class HODController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.form_status', 2) // Complete/Submitted
             ->where('leave_details.status_id', 5) // Processing HOD
@@ -75,7 +76,8 @@ class HODController extends Controller
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
             ->leftJoin('designations', 'employees.designation_id', '=', 'designations.id')
-            ->join('leave_types', 'leave_details.leave_type_id', '=', 'leave_types.id')
+            ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
+            ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
             ->where('leave_details.id', $id)
             ->where('leave_details.form_status', 2)
@@ -98,6 +100,22 @@ class HODController extends Controller
 
         if (!$application) {
             return redirect()->route('hod.index')->with('error', 'Application not found.');
+        }
+
+        // Load specific fields from otherLeavesDetails table
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
+
+        // Merge other leave details into application object
+        if ($otherLeaveDetails) {
+            $application->leave_type_id = $otherLeaveDetails->leave_type_id;
+            $application->from_date = $otherLeaveDetails->from_date;
+            $application->end_date = $otherLeaveDetails->end_date;
+            $application->duration = $otherLeaveDetails->duration;
+            $application->leave_document = $otherLeaveDetails->leave_document;
+            $application->consent_letter = $otherLeaveDetails->consent_letter;
         }
 
         // Get Dean information for this faculty
@@ -171,6 +189,12 @@ class HODController extends Controller
         if (!$application) {
             return redirect()->route('hod.index')->with('error', 'Application not found.');
         }
+
+        // Load specific fields from otherLeavesDetails table for validation/processing
+        $otherLeaveDetails = DB::table('otherLeavesDetails')
+            ->where('reference_no', $application->reference_no)
+            ->select('leave_type_id', 'from_date', 'end_date', 'duration', 'leave_document', 'consent_letter')
+            ->first();
 
         // If recommended or not, always forward to Dean (status_id = 6)
         $status_id = 6;

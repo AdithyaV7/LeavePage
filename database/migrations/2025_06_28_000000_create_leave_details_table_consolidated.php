@@ -30,12 +30,12 @@ return new class extends Migration
             
             // Leave application details
             $table->string('reference_no')->unique();
-            $table->unsignedBigInteger('leave_type_id')->nullable();
-            $table->date('from_date')->nullable();
-            $table->date('to_date')->nullable();
-            $table->integer('duration')->nullable();
-            $table->text('leave_document')->nullable();
-            $table->text('consent_letter')->nullable();
+            //$table->unsignedBigInteger('leave_type_id')->nullable();
+           // $table->date('from_date')->nullable();
+            //$table->date('to_date')->nullable();
+            //$table->integer('duration')->nullable();
+            //$table->text('leave_document')->nullable();
+           // $table->text('consent_letter')->nullable();
             
             // Status fields
             $table->tinyInteger('form_status')->default(4);
@@ -80,7 +80,6 @@ return new class extends Migration
             // Foreign key constraints
             $table->foreign('empno')->references('employee_no')->on('employees')->onDelete('cascade');
             $table->foreign('nic')->references('nic')->on('employees')->onDelete('cascade');
-            $table->foreign('leave_type_id')->references('id')->on('leave_types');
             $table->foreign('status_id')->references('stat_id')->on('statuses');
             $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null');
             $table->foreign('faculty_id')->references('id')->on('faculties')->onDelete('set null');

@@ -88,7 +88,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">End Date</label>
-                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($application->to_date)->format('F d, Y') }}" readonly>
+                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($application->end_date)->format('F d, Y') }}" readonly>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Duration (Days)</label>
