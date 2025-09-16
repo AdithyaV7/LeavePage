@@ -34,3 +34,20 @@
         </li>
     </ul>
 </nav> 
+
+<style>
+   .bg-info {
+        background-color: #007bff !important;
+    }
+
+    .details-header {
+        background-color: #007bff !important;
+        color:rgb(255, 255, 255) !important;
+    }
+    .details-name {
+        color:rgb(255, 255, 255) !important;
+    }
+    .document-header {
+        background-color: #007bff !important;
+    }
+</style>

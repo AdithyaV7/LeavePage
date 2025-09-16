@@ -129,15 +129,15 @@ body {
 }
 
 .card-header.bg-dark {
-    background-color: var(--maroon-primary) !important;
+    background-color:  #000000 !important;
     color: white !important;
-    border-bottom: 2px solid var(--gold-primary);
+    border-bottom: 2px solid #000000;
 }
 
 .card-header.bg-warning {
-    background-color: var(--gold-primary) !important;
-    color: var(--maroon-dark) !important;
-    border-bottom: 2px solid var(--maroon-primary);
+    background-color: #0e0e0e !important;
+    color: #ffffff !important;
+    border-bottom: 2px solid #000000;
 }
 
 /* Badge styling */

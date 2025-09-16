@@ -193,12 +193,12 @@
 
     <!-- Documents -->
     <div class="card mb-4">
-        <div class="card-header bg-success text-white fw-semibold">
+        <div class="card-header bg-success document-header text-white fw-semibold">
             <i class="fas fa-file me-2"></i>Documents
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <label class="form-label fw-semibold">Consent Letters</label>
                     @if(!empty($application->consent_letters) && count($application->consent_letters))
                         @foreach($application->consent_letters as $letter)
@@ -233,7 +233,7 @@
                     @endif
                 </div>
                 @if(!empty($application->leave_documents) && count($application->leave_documents))
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <label class="form-label fw-semibold">Leave Request Documents</label>
                     @foreach($application->leave_documents as $doc)
                         <div class="mb-3">

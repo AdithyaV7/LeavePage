@@ -21,7 +21,7 @@ class LeaveController extends Controller
     /**
      * Generate a new reference number following the pattern: <empNo><year><04><No>
      */
-    private function generateReferenceNumber($empNo)
+    private function generateReferenceNumber()
     {
         $currentYear = date('Y');
         
@@ -30,7 +30,7 @@ class LeaveController extends Controller
         $newNo = $lastId + 1;
 
         // Format: <empNo><year><04><No>
-        return "{$empNo}{$currentYear}04{$newNo}";
+        return "{$currentYear}04{$newNo}";
     }
 
     public function index()

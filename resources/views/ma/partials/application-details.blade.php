@@ -71,10 +71,10 @@
 <!-- Leave request documents -->
 @if(isset($travelDetails) && count($travelDetails) > 0)
 <div class="card mb-4">
-    <div class="card-header bg-warning text-dark fw-semibold">
+    <div class="card-header bg-warning text-dark fw-semibold details-header">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <i class="fas fa-plane me-2"></i>Details
+                <i class="fas fa-plane me-2 details-name"></i>Details
             </div>
             <small class="badge bg-dark">{{ count($travelDetails) }} destination(s)</small>
         </div>
@@ -168,7 +168,7 @@
 
 <!-- Documents -->
 <div class="card mb-4">
-    <div class="card-header bg-success text-white fw-semibold">
+    <div class="card-header bg-success text-white fw-semibold document-header">
         <i class="fas fa-file me-2"></i>Documents
     </div>
     <div class="card-body">
@@ -209,7 +209,7 @@
             </div>
             @if(!empty($application->leave_documents) && count($application->leave_documents))
             <div class="col-md-12">
-                <label class="form-label fw-semibold">Leave Request Documents</label>
+                <label class="form-label fw-semibold">Other Leave Request Documents</label>
                 @foreach($application->leave_documents as $doc)
                     <div class="mb-3">
                         <div class="d-flex align-items-center justify-content-between mb-2">

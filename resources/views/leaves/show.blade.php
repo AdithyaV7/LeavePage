@@ -117,11 +117,11 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Start Date</label>
-                <input type="text" class="form-control" value="{{ $otherLeave->from_date ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ optional($otherLeave->from_date)->format('Y-m-d') ?? 'N/A' }}" readonly>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">End Date</label>
-                <input type="text" class="form-control" value="{{ $otherLeave->end_date ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ optional($otherLeave->end_date)->format('Y-m-d') ?? 'N/A' }}" readonly>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Duration (Days)</label>

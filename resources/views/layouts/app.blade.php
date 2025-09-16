@@ -101,6 +101,15 @@
         .swal2-toast {
             border-radius: 8px;
         }
+
+        .bg-info {
+            background-color: rgb(12 12 12) !important;
+        }
+
+        .document-header {
+            background-color: rgb(12 12 12) !important;
+        }
+
     </style>
 </body>
 </html>
