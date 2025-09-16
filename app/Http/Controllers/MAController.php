@@ -256,6 +256,7 @@ class MAController extends Controller
             ->join('employees', 'leave_details.nic', '=', 'employees.nic')
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->leftJoin('faculties', 'employees.faculty_id', '=', 'faculties.id')
+            ->leftJoin('categories', 'employees.title_id', '=', 'categories.id')
             ->join('otherLeavesDetails', 'leave_details.reference_no', '=', 'otherLeavesDetails.reference_no')
             ->join('leave_types', 'otherLeavesDetails.leave_type_id', '=', 'leave_types.id')
             ->join('statuses', 'leave_details.status_id', '=', 'statuses.stat_id')
@@ -300,6 +301,7 @@ class MAController extends Controller
                 'leave_details.reference_no',
                 'employees.employee_no as empno',
                 DB::raw("CONCAT(employees.initials, ' ', employees.last_name) as name_with_initials"),
+                'categories.category_name as title',
                 'departments.department_name as department',
                 'faculties.faculty_name as faculty',
                 'leave_details.applied_date',

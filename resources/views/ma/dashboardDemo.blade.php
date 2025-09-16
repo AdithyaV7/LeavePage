@@ -83,7 +83,7 @@
                                 <span class="info-box-icon bg-warning"><i class="fas fa-clock"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Pending Review</span>
-                                    <span class="info-box-number">{{ $applications->where('remark', null)->count() }}</span>
+                                    <span class="info-box-number">{{ $applications->where('status_id', 4)->count() }}</span>
                                 </div>
                             </div>
                         </div>
@@ -92,7 +92,7 @@
                                 <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Reviewed</span>
-                                    <span class="info-box-number">{{ $applications->where('remark', '!=', null)->count() }}</span>
+                                    <span class="info-box-number">{{ $applications->where('status_id', '>', 4)->count() }}</span>
                                 </div>
                             </div>
                         </div>
@@ -115,7 +115,7 @@
                                     <h3 class="card-title">
                                         <i class="fas fa-list mr-2"></i>
                                         Applications Pending Review
-                                        <span class="badge badge-primary ml-2">{{ $applications->count() }}</span>
+                                        <span class="badge badge-primary ml-2">{{ $applications->where('status_id', 4)->count() }}</span>
                                     </h3>
                                     <div class="card-tools">
                                         <span class="text-muted">
@@ -229,14 +229,15 @@
                                                     @foreach($applications as $application)
                                                         <tr>
                                                             <td>
-                                                                <span class="badge badge-primary">{{ $application->reference_no }}</span>
+                                                                {{ $application->reference_no }}
                                                             </td>
                                                             <td>
                                                                 <span class="badge badge-secondary">{{ $application->empno }}</span>
                                                             </td>
                                                             <td>
-                                                                <strong>{{ $application->name_with_initials }}</strong>
+                                                                <strong>{{ $application->title ?? 'N/A' }} {{ $application->name_with_initials }}</strong>
                                                             </td>
+                                                            
                                                             <td>{{ $application->department }}</td>
                                                             <td>{{ $application->faculty }}</td>
                                                             <td>
