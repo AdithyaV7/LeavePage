@@ -83,15 +83,7 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-2">
-                                <form id="approveForm" action="{{ route('ma.approve', $application->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <input type="hidden" id="approveRemarkInput" name="remark" value="">
-                                    <button type="submit" class="btn btn-success me-2">
-                                        <i class="fas fa-check me-2"></i>Forward
-                                    </button>
-                                </form>
-
+                            <div class="d-flex justify-content-between align-items-start">
                                 <form id="returnForm" action="{{ route('ma.return', $application->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <input type="hidden" id="returnRemarkInput" name="remark" value="">
@@ -99,6 +91,39 @@
                                         <i class="fas fa-undo me-2"></i>Return to User
                                     </button>
                                 </form>
+
+                                <div class="text-right">
+                                    <form id="approveForm" action="{{ route('ma.approve', $application->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <input type="hidden" id="approveRemarkInput" name="remark" value="">
+                                        <button type="submit" class="btn btn-success" {{ empty($departmentHead) ? 'disabled' : '' }}>
+                                            <i class="fas fa-check me-2"></i>Forward
+                                        </button>
+                                    </form>
+
+                                    @if(isset($departmentHead))
+                                    <div class="card mt-2" style="min-width: 260px;">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex align-items-center">
+                                                <strong>Forward to,&nbsp;</strong>
+                                                <div>
+                                                    <div class="fw-semibold">{{ $departmentHead->head_title ?? 'Head' }}&nbsp;{{ $departmentHead->head_name ?? '' }}</div>
+                                                    <div class="text-muted small">{{ $departmentHead->head_position ?? '' }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @else
+                                    <div class="card mt-2 border-warning" style="min-width: 260px;">
+                                        <div class="card-body py-2">
+                                            <div class="text-danger">
+                                                <strong>No active Department Head</strong>
+                                                <div class="text-muted small">Forwarding is disabled until a head is active.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>

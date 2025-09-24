@@ -25,6 +25,7 @@ class LeaveDetail extends Model
         'remark',
         'department_id',
         'faculty_id',
+        'academic_year',
         // Employee numbers for approval hierarchy
         'ma_empno',
         'hod_empno',

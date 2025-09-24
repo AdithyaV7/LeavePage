@@ -42,7 +42,7 @@
 
 </head>
 <body>
-    <header class="bg-maroon-primary text-white py-3 fixed-top">
+    <!-- <header class="bg-maroon-primary text-white py-3 fixed-top">
         <div class="container d-flex justify-content-between align-items-center">
             <div>
                 <a href="{{ route('leaves.index') }}" class="text-white text-decoration-none fw-bold fs-5 hover-gold">
@@ -56,9 +56,9 @@
                 </a>
             </div>
         </div>
-    </header>
+    </header> -->
 
-    <main class="py-4" style="padding-top: 80px;">
+    <main >
         @yield('content')
     </main>
 

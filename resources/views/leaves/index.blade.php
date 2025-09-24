@@ -144,13 +144,28 @@
                     </div>
                 @endif
             @else
-                <!-- Show new application button when no active draft -->
-                <a href="{{ route('leaves.new') }}" class="d-inline-block text-decoration-none" id="new-application-button">
-                    <div class="new-app-icon d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="bi bi-journal-plus"></i>
+                <!-- Show new application section when no active draft -->
+                <div class="new-application-section">
+                    <div class="mb-3">
+                        <label for="academic-year" class="form-label fw-semibold text-maroon">
+                            <i class="fas fa-calendar-alt me-2 icon-gold"></i>Select Academic Year
+                        </label>
+                        <select class="form-select" id="academic-year" name="academic_year">
+                            <option value="">Choose Academic Year...</option>
+                            <option value="20/21">20/21</option>
+                            <option value="21/22">21/22</option>
+                            <option value="22/23">22/23</option>
+                            <option value="23/24">23/24</option>
+                            <option value="24/25">24/25</option>
+                        </select>
                     </div>
-                    <div><span class="fw-semibold text-maroon">Start a New Application</span></div>
-                </a>
+                    <a href="#" class="d-inline-block text-decoration-none" id="new-application-button" onclick="startNewApplication(event)">
+                        <div class="new-app-icon d-flex align-items-center justify-content-center mx-auto mb-2">
+                            <i class="bi bi-journal-plus"></i>
+                        </div>
+                        <div><span class="fw-semibold text-maroon">Start a New Application</span></div>
+                    </a>
+                </div>
             @endif
         </div>
 
@@ -286,7 +301,7 @@
 .table td {
     color: #3a3a3a;
 }
-.new-app-icon {
+    .new-app-icon {
     width: 90px;
     height: 90px;
     border-radius: 50%;
@@ -296,7 +311,33 @@
     color: #0d6efd;
     box-shadow: 0 2px 8px rgba(13,110,253,0.08);
 }
+
+.new-application-section {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.new-application-section .form-select {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.new-application-section .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.new-application-section .form-label {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+}
 </style>
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     const toggleButton = document.querySelector('[data-bs-toggle="collapse"]');
@@ -310,4 +351,34 @@
     draftsCollapse.addEventListener('hidden.bs.collapse', () => {
         toggleIcon.classList.replace('bi-dash', 'bi-plus');
     });
+
+    function startNewApplication(event) {
+        event.preventDefault();
+        
+        const academicYear = document.getElementById('academic-year').value;
+        
+        if (!academicYear) {
+            // SweetAlert instead of regular alert
+            Swal.fire({
+                icon: 'warning',
+                title: 'Academic Year Required',
+                text: 'Please select an academic year before starting a new application.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3085d6',
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
+            }).then(() => {
+                // Focus on the select element after closing the alert
+                document.getElementById('academic-year').focus();
+            });
+            return false;
+        }
+        
+        // Navigate to new application with academic year parameter
+        window.location.href = `{{ route('leaves.new') }}?academic_year=${academicYear}`;
+    }
 </script>

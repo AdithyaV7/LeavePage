@@ -1,6 +1,6 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0 fw-bold">Management Assistant Dashboard</h2>
+        <h2 class="mb-0 fw-bold">Pending Applications</h2>
         <div class="text-muted">Applications Pending Review</div>
     </div>
 
@@ -60,9 +60,6 @@
                                         <div class="text-muted">
                                             {{ \Carbon\Carbon::parse($application->applied_date)->format('M d, Y') }}
                                         </div>
-                                        <small class="text-muted">
-                                            {{ \Carbon\Carbon::parse($application->applied_date)->format('h:i A') }}
-                                        </small>
                                     </td>
                                     <td>
                                         <span class="badge bg-warning">{{ $application->status }}</span>

@@ -27,6 +27,7 @@
                 @else
                     Application for Conference/ Seminar/ Training and Workshop
                 @endif
+                
             </h2>
         </div>
         <a href="{{ route('leaves.index') }}" class="btn btn-outline-maroon">
@@ -42,6 +43,9 @@
             <input type="hidden" name="reference_no" value="{{ $leave->reference_no }}">
         @else
             <input type="hidden" name="reference_no" value="">
+            @if(isset($academicYear))
+                <input type="hidden" name="academic_year" value="{{ $academicYear }}">
+            @endif
         @endif
 
         <!-- Personal Details (readonly) -->
@@ -92,7 +96,14 @@
                 <i class="fas fa-history me-2"></i>Previous Leaves
             </div>
             <div class="card-body">
-                <p><strong>Academic Year: {{ date('Y') }}</strong></p>
+                @if(isset($academicYear) || (isset($leave) && $leave->academic_year))
+                    <small>
+                    <p><strong>
+                    Academic Year: {{ $academicYear ?? $leave->academic_year }}
+                    </strong></p>
+                    </small>
+                @endif
+                
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm">
                         <thead>
@@ -1101,11 +1112,22 @@
                     </small>
                 </div>
 
-                <div class="form-check mt-3">
-                    <input type="checkbox" name="confirm" class="form-check-input" id="confirm_checkbox">
-                    <label class="form-check-label">I confirm that the above details are true and correct. *</label>
-                    <div id="confirm_error" class="text-danger small d-none">Please confirm that the details are true and correct.</div>
+                <div class="container mt-5">
+                    <div class="row justify-content-left">
+                        <div class="col-md-8">
+                  <!-- Your enhanced checkbox -->
+                            <div class="form-check mt-3 enhanced" id="confirm_container">
+                                <input type="checkbox" name="confirm" class="form-check-input enhanced" id="confirm_checkbox">
+                                <label class="form-check-label enhanced" for="confirm_checkbox">
+                                     I confirm that the above details are true and correct.<span class="required-asterisk">*</span>
+                                </label>
+                            <div id="confirm_error" class="text-danger small d-none">Please confirm that the details are true and correct.</div>
+                            </div>
+                
+                        </div>
+                    </div>
                 </div>
+                
             </div>
         </div>
 
@@ -2064,6 +2086,49 @@
     border-color: #dc3545;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
+
+/* Enhanced checkbox container */
+.form-check.enhanced {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 30px;
+            background-color: #f8f9fa;
+            margin-top: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-check.enhanced:hover {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        
+        .form-check.enhanced.checked {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        
+        .form-check.enhanced.error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        /* Enhanced checkbox input */
+        .form-check-input.enhanced {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        /* Enhanced label */
+        .form-check-label.enhanced {
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
 </style>
 
 <script>

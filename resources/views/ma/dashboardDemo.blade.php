@@ -232,7 +232,7 @@
                                                                 {{ $application->reference_no }}
                                                             </td>
                                                             <td>
-                                                                <span class="badge badge-secondary">{{ $application->empno }}</span>
+                                                                <strong>{{ $application->empno }}</strong>
                                                             </td>
                                                             <td>
                                                                 <strong>{{ $application->title ?? 'N/A' }} {{ $application->name_with_initials }}</strong>
@@ -246,9 +246,9 @@
                                                             <td>
                                                                 {{ \Carbon\Carbon::parse($application->applied_date)->format('M d, Y') }}
                                                                 <br>
-                                                                <small class="text-muted">
+                                                                <!-- <small class="text-muted">
                                                                     {{ \Carbon\Carbon::parse($application->applied_date)->format('h:i A') }}
-                                                                </small>
+                                                                </small> -->
                                                             </td>
                                                             <td>
                                                                 @php

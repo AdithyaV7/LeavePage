@@ -39,7 +39,7 @@
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h1>Status Tracker</h1>
+                            <h1>Application Status</h1>
                         </div>
                         <div class="col-sm-6">
                             <ol class="breadcrumb float-sm-right">
@@ -89,8 +89,8 @@
                                                         $current = $app->status_id;
                                                     @endphp
                                                     <tr>
-                                                        <td><span class="badge badge-primary">{{ $app->reference_no }}</span></td>
-                                                        <td><span class="badge badge-secondary">{{ $app->empno }}</span></td>
+                                                        <td><span class="badge">{{ $app->reference_no }}</span></td>
+                                                        <td><span class="badge">{{ $app->empno }}</span></td>
                                                         <td>{{ $app->name_with_initials }}</td>
                                                         <td><span class="badge badge-info">{{ $app->leave_type }}</span></td>
                                                         @foreach($stages as $stage => $sid)

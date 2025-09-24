@@ -145,6 +145,7 @@ class LeaveController extends Controller
         $leave = null;
         $otherLeave = null;
         $remark = null;
+        $academicYear = null;
 
         if ($request->has('id')) {
             $leave = \App\Models\LeaveDetail::where('id', $request->id)->where('nic', $user->nic)->first();
@@ -158,6 +159,12 @@ class LeaveController extends Controller
             // If it's a returned form, get the remark
             if ($leave->form_status == 3) {
                 $remark = $leave->remark;
+            }
+        } else {
+            // For new applications, check if academic year is provided
+            $academicYear = $request->get('academic_year');
+            if (!$academicYear) {
+                return redirect()->route('leaves.index')->with('error', 'Please select an academic year to start a new application.');
             }
         }
         // Note: For new applications, $leave and $otherLeave will be null and the form will work without a database record
@@ -187,7 +194,7 @@ class LeaveController extends Controller
             $travelDetails = LeaveRequestDetail::where('reference_no', $leave->reference_no)->get();
         }
 
-        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'otherLeave', 'remark', 'travelDetails'));
+        return view('create', compact('user', 'leaveTypes', 'previousLeaves', 'leave', 'otherLeave', 'remark', 'travelDetails', 'academicYear'));
     }
 
     public function show($id)
@@ -267,6 +274,11 @@ class LeaveController extends Controller
         $rules = [
             'form_status' => 'required|in:1,2',
         ];
+
+        // For new applications (not updates), academic year is required
+        if (!$isUpdate) {
+            $rules['academic_year'] = 'required|string|in:20/21,21/22,22/23,23/24,24/25';
+        }
 
         if (!$isDraft) {
             $rules = array_merge($rules, [
@@ -373,6 +385,7 @@ class LeaveController extends Controller
             }
 
             // Update leave_details table (only status and form_status)
+            // Note: For drafts and returned forms, academic year cannot be changed
             $leave->update([
                 'status_id' => $request->form_status == 1 ? 3 : 4,
                 'form_status' => $request->form_status,
@@ -460,6 +473,7 @@ class LeaveController extends Controller
                 'applied_date' => now()->addHours(5)->addMinutes(30),
                 'department_id' => $user->department_id,
                 'faculty_id' => $user->faculty_id,
+                'academic_year' => $request->academic_year,
             ]);
 
             // Create otherleavesdetails record

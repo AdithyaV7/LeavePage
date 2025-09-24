@@ -21,6 +21,7 @@ return new class extends Migration
             // Department and faculty hierarchy
             $table->unsignedBigInteger('department_id')->nullable();
             $table->unsignedBigInteger('faculty_id')->nullable();
+            $table->string('academic_year')->nullable();
             
             // Employee numbers for approval hierarchy
             $table->string('ma_empno')->nullable()->comment('Management Assistant Employee Number');
